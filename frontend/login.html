@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sign In — HireTrack 360</title><link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-page">
+<div class="auth-shell">
+  <div class="auth-brand"><a class="brand" href="index.html"><span class="brand-mark">H</span> HireTrack <b>360</b></a></div>
+  <div class="auth-card">
+    <div class="auth-head"><div class="mini-icon">↗</div><h1>Welcome back</h1><p>Choose how you want to continue.</p></div>
+    <div class="role-tabs">
+      <button class="role-tab active" data-role="job_seeker"><span>👤</span><div><b>Job Seeker</b><small>Find your next opportunity</small></div></button>
+      <button class="role-tab" data-role="recruiter"><span>💼</span><div><b>Recruiter</b><small>Build your hiring pipeline</small></div></button>
+    </div>
+    <form id="loginForm">
+      <input type="hidden" id="role" value="job_seeker">
+      <label>Email address<input id="email" type="email" placeholder="you@example.com" required></label>
+      <label>Password<div class="password-wrap"><input id="password" type="password" placeholder="••••••••" required><button type="button" id="togglePass">Show</button></div></label>
+      <div class="form-row"><label class="check"><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div>
+      <button class="btn btn-primary btn-full" type="submit">Sign in <span>→</span></button>
+    </form>
+    <p class="switch-auth">New to HireTrack? <a href="signup.html">Create an account</a></p>
+  </div>
+</div>
+<script src="js/auth.js"></script>
+</body></html>

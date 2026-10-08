@@ -1,0 +1,1 @@
+Add your 192x192 notification icon here as icon-192.png before production push notifications.
