@@ -41,3 +41,19 @@ a{text-decoration:none;color:inherit}button,input{font:inherit}.btn{display:inli
 .registration-fields{display:grid;gap:14px;margin:14px 0}.registration-fields textarea{width:100%;background:#081524;border:1px solid #ffffff10;border-radius:11px;padding:13px 14px;color:white;font:inherit;resize:vertical}.auth-message{margin:0;padding:10px 12px;border-radius:8px;background:#ff66771c;color:#ffadb5;font-size:12px;line-height:1.5}.landing-footer{max-width:1250px;margin:auto;padding:25px 30px 35px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px;color:var(--muted);font-size:12px}.landing-footer span:first-child{font:700 13px Manrope;color:var(--text)}.landing-footer a{color:#9388ff}
 @media(min-width:1001px){.feature-strip{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:760px){.landing-footer{align-items:flex-start;flex-direction:column;padding:22px 20px}}
+
+
+/* Signup form stability: keep the required email control visible and the form layout readable. */
+.signup-card { width: 100%; }
+#signupForm { display: grid; gap: 15px; }
+#signupForm > .two-col:first-of-type { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+#signupForm > .two-col:first-of-type > label { display: grid; min-width: 0; }
+#signupForm #email { display: block; min-width: 0; width: 100%; }
+#signupForm .registration-fields { min-width: 0; }
+#signupForm input, #signupForm textarea { min-width: 0; }
+#signupForm [type="submit"]:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 560px) {
+  .auth-shell { width: 100%; max-width: 510px; }
+  .signup-card { padding: 22px; }
+  #signupForm > .two-col:first-of-type { grid-template-columns: 1fr; }
+}
