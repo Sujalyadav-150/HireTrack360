@@ -275,7 +275,11 @@ app.post("/api/auth/forgot-password", async (req, res) => {
       user.passwordResetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
       user.passwordResetExpiresAt = expiresAt;
       await user.save();
-      await sendPasswordReset(user, token);
+      // Use the configured frontend URL when provided; otherwise use the host
+      // that actually requested the reset. This makes local phone testing work
+      // without generating a link to the phone's own localhost.
+      const resetBaseUrl = process.env.FRONTEND_URL?.trim() || `${req.protocol}://${req.get("host")}`;
+      await sendPasswordReset(user, token, resetBaseUrl);
     }
   } catch (error) {
     console.error("Password reset request error:", error.message);
