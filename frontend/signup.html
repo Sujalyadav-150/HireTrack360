@@ -13,11 +13,13 @@
       <button class="role-tab active" data-role="jobseeker"><span>👤</span><div><b>Job Seeker</b><small>Discover & track jobs</small></div></button>
       <button class="role-tab" data-role="recruiter"><span>💼</span><div><b>Recruiter</b><small>Hire better candidates</small></div></button>
     </div>
-    <form id="signupForm">
+    <form id="signupForm" novalidate>
       <input type="hidden" id="role" value="jobseeker">
       <div class="two-col">
         <label>Full name<input id="name" required maxlength="100" placeholder="Your name"></label>
-          <label id="emailLabel">Email<input id="email" type="email" required maxlength="254" placeholder="you@example.com"></label>
+          <label id="emailLabel" for="email">Email
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="254" placeholder="you@example.com" aria-describedby="emailHelp">
+          </label>
       </div>
       <div id="dynamicFields"></div>
       <div class="two-col">
