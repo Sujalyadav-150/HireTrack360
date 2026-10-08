@@ -15,6 +15,10 @@ function showAuthMessage(message = "") {
   box.hidden = !message;
 }
 
+function fieldValue(id) {
+  return document.getElementById(id)?.value?.trim() || "";
+}
+
 function redirectForRole(role) {
   window.location.href = role === "recruiter" ? "recruiter-dashboard.html" : "dashboard.html";
 }
@@ -38,7 +42,11 @@ roleButtons.forEach(button => {
 
 function renderDynamicFields() {
   const box = document.getElementById("dynamicFields");
-  if (emailLabel && roleInput) emailLabel.textContent = roleInput.value === "recruiter" ? "Work email" : "Email";
+  if (emailLabel && roleInput) {
+    emailLabel.firstChild.nodeType === Node.TEXT_NODE
+      ? emailLabel.firstChild.textContent = roleInput.value === "recruiter" ? "Work email " : "Email "
+      : emailLabel.insertBefore(document.createTextNode(roleInput.value === "recruiter" ? "Work email " : "Email "), emailLabel.firstChild);
+  }
   if (!box || !roleInput) return;
   box.innerHTML = roleInput.value === "recruiter"
     ? `<div class="registration-fields"><label>Company name<input id="companyName" name="companyName" placeholder="Your company" required></label><label>Designation<input id="designation" placeholder="Talent Partner"></label><label>Company website<input id="companyWebsite" type="url" placeholder="https://company.com"></label><label>Company location<input id="companyLocation" placeholder="City, Country"></label><label>Company description<textarea id="companyDescription" rows="3" placeholder="What your company does"></textarea></label></div>`
@@ -76,41 +84,77 @@ document.getElementById("loginForm")?.addEventListener("submit", async event => 
 document.getElementById("signupForm")?.addEventListener("submit", async event => {
   event.preventDefault();
   showAuthMessage();
-  const submitButton = event.currentTarget.querySelector('[type="submit"]');
-  submitButton.disabled = true;
-  if (document.getElementById("password").value !== document.getElementById("confirmPassword").value) {
-    showAuthMessage("Passwords do not match");
-    submitButton.disabled = false;
+
+  const form = event.currentTarget;
+  const submitButton = form.querySelector('[type="submit"]');
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const confirmPasswordInput = document.getElementById("confirmPassword");
+  const nameInput = document.getElementById("name");
+
+  // Validate explicitly so the user gets a readable message even when browser
+  // validation UI behaves differently or the email control was previously hidden.
+  if (!nameInput?.value.trim()) {
+    showAuthMessage("Please enter your full name.");
+    nameInput?.focus();
     return;
   }
-  const requestBody = {
-    name: document.getElementById("name").value,
-    email: document.getElementById("email").value,
-    password: document.getElementById("password").value,
-    role: roleInput.value
-  };
-  if (requestBody.role === "recruiter") {
-    requestBody.companyName = document.getElementById("companyName").value;
-    requestBody.designation = document.getElementById("designation").value;
-    requestBody.companyWebsite = document.getElementById("companyWebsite").value;
-    requestBody.companyLocation = document.getElementById("companyLocation").value;
-    requestBody.companyDescription = document.getElementById("companyDescription").value;
-  } else {
-    requestBody.skills = document.getElementById("skills").value;
-    requestBody.phone = document.getElementById("phone").value;
-    requestBody.location = document.getElementById("location").value;
-    requestBody.experience = document.getElementById("experience").value;
-    requestBody.education = document.getElementById("education").value;
-    requestBody.bio = document.getElementById("bio").value;
+  const email = emailInput?.value.trim() || "";
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    showAuthMessage("Please enter a valid email address.");
+    emailInput?.focus();
+    return;
   }
+  if ((passwordInput?.value || "").length < 8) {
+    showAuthMessage("Password must be at least 8 characters.");
+    passwordInput?.focus();
+    return;
+  }
+  if (passwordInput.value !== confirmPasswordInput?.value) {
+    showAuthMessage("Passwords do not match.");
+    confirmPasswordInput?.focus();
+    return;
+  }
+  if (roleInput?.value === "recruiter" && !fieldValue("companyName")) {
+    showAuthMessage("Please enter your company name.");
+    document.getElementById("companyName")?.focus();
+    return;
+  }
+
+  const requestBody = {
+    name: nameInput.value.trim(),
+    email,
+    password: passwordInput.value,
+    role: roleInput?.value || "jobseeker"
+  };
+
+  if (requestBody.role === "recruiter") {
+    requestBody.companyName = fieldValue("companyName");
+    requestBody.designation = fieldValue("designation");
+    requestBody.companyWebsite = fieldValue("companyWebsite");
+    requestBody.companyLocation = fieldValue("companyLocation");
+    requestBody.companyDescription = fieldValue("companyDescription");
+  } else {
+    requestBody.skills = fieldValue("skills");
+    requestBody.phone = fieldValue("phone");
+    requestBody.location = fieldValue("location");
+    requestBody.experience = fieldValue("experience");
+    requestBody.education = fieldValue("education");
+    requestBody.bio = fieldValue("bio");
+  }
+
+  submitButton.disabled = true;
+  submitButton.setAttribute("aria-busy", "true");
   try {
     const result = await apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify(requestBody)
     });
+    if (!result?.user) throw new Error("Account was created but the server response was incomplete. Please sign in.");
     saveSession(result);
   } catch (error) {
-    showAuthMessage(error.message);
+    showAuthMessage(error.message || "Could not create your account. Check the server and try again.");
     submitButton.disabled = false;
+    submitButton.removeAttribute("aria-busy");
   }
 });
