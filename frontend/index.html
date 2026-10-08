@@ -12,26 +12,22 @@
   <div class="bg-orb orb-two"></div>
 
   <header class="landing-nav">
-    <a class="brand" href="#"><span class="brand-mark">H</span> HireTrack <b>360</b></a>
+    <a class="brand" href="index.html"><span class="brand-mark">H</span> HireTrack <b>360</b></a>
     <div class="nav-actions">
-      <a href="login.html" class="btn btn-ghost">Sign in</a>
-      <a href="signup.html" class="btn btn-primary">Get started <span>→</span></a>
+      <a href="login.html?role=jobseeker" class="btn btn-ghost">Sign In</a>
+      <a href="signup.html?role=jobseeker" class="btn btn-primary">Create Account <span>→</span></a>
+      <a href="dashboard.html" class="btn btn-primary" id="dashboardLink" hidden>Go to Dashboard <span>→</span></a>
     </div>
   </header>
 
   <main class="hero">
     <section class="hero-copy">
-      <div class="eyebrow"><span class="pulse"></span> Smarter job search, powered by intelligence</div>
-      <h1>Find the right job.<br><span>Track every opportunity.</span></h1>
-      <p>HireTrack 360 combines job discovery, skill matching, application health and trust signals in one modern workspace.</p>
+      <div class="eyebrow"><span class="pulse"></span> Smart Job Search &amp; Application Intelligence</div>
+      <h1>Make every<br><span>career move count.</span></h1>
+      <p>Find roles aligned to your real skills, understand listing signals, and keep every application moving. Recruiters get a focused workspace for jobs, applicants, and interviews.</p>
       <div class="hero-actions">
-        <a href="signup.html" class="btn btn-primary btn-lg">Start your journey <span>↗</span></a>
-        <a href="login.html" class="btn btn-ghost btn-lg">Explore dashboard</a>
-      </div>
-      <div class="trust-row">
-        <div><strong>92%</strong><small>match visibility</small></div>
-        <div><strong>24/7</strong><small>application tracking</small></div>
-        <div><strong>360°</strong><small>career intelligence</small></div>
+        <a href="login.html?role=jobseeker" class="btn btn-primary btn-lg">Find Jobs <span>↗</span></a>
+        <a href="login.html?role=recruiter" class="btn btn-ghost btn-lg">Post Jobs</a>
       </div>
     </section>
 
@@ -44,7 +40,7 @@
             <h3>Data Analyst</h3>
             <p>FinEdge Technologies · Bangalore</p>
           </div>
-          <div class="score-ring"><b>87%</b><span>match</span></div>
+          <div class="score-ring"><b>Skill</b><span>match</span></div>
         </div>
         <div class="mini-bars">
           <div><span>SQL</span><i style="width:94%"></i><b>94</b></div>
@@ -61,6 +57,9 @@
     <article><span>01</span><h3>Job Match Score</h3><p>Compare your skills with real job requirements before applying.</p></article>
     <article><span>02</span><h3>Application Health</h3><p>Detect stalled applications and never miss a follow-up.</p></article>
     <article><span>03</span><h3>Job Trust Score</h3><p>Spot suspicious signals before you invest your time.</p></article>
+    <article><span>04</span><h3>Follow-up Automation</h3><p>Get a reminder when an application has had no update for seven days.</p></article>
   </section>
+  <footer class="landing-footer"><span>HireTrack 360</span><span>Built for better hiring decisions.</span><a href="signup.html?role=recruiter">Recruiter account</a></footer>
+  <script src="js/landing.js"></script>
 </body>
 </html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Recruiter Workspace — HireTrack 360</title><link rel="stylesheet" href="css/style.css">
+</head>
+<body class="app-page recruiter-page">
+<aside class="sidebar">
+  <a class="brand" href="#overview" data-view-link="overview"><span class="brand-mark">H</span> HireTrack <b>360</b></a>
+  <div class="side-label">Hiring workspace</div>
+  <nav>
+    <a class="nav-item active" href="#overview" data-view-link="overview"><span>⌂</span> Dashboard</a>
+    <a class="nav-item" href="#post-job" data-view-link="post-job"><span>＋</span> Post a Job</a>
+    <a class="nav-item" href="#my-jobs" data-view-link="my-jobs"><span>▤</span> My Jobs</a>
+    <a class="nav-item" href="#applications" data-view-link="applications"><span>▣</span> Applications</a>
+    <a class="nav-item" href="#candidates" data-view-link="candidates"><span>♙</span> Candidates</a>
+    <a class="nav-item" href="#shortlisted" data-view-link="shortlisted"><span>★</span> Shortlisted</a>
+    <a class="nav-item" href="#interviews" data-view-link="interviews"><span>◷</span> Interviews</a>
+  </nav>
+  <div class="side-label">Company</div>
+  <nav>
+    <a class="nav-item" href="#company" data-view-link="company"><span>◈</span> Company Profile</a>
+    <a class="nav-item" href="#notifications" data-view-link="notifications"><span>♢</span> Notifications</a>
+  </nav>
+  <div class="side-profile"><div class="avatar" id="sideAvatar">HT</div><div><b id="sideName">Hiring team</b><small id="sideCompany">Recruiter</small></div><button class="side-more" data-action="sign-out" title="Sign out" aria-label="Sign out">↪</button></div>
+</aside>
+
+<main class="dashboard-main">
+  <header class="topbar">
+    <div><span class="mobile-menu">☰</span><h2 id="pageTitle">Recruiter dashboard</h2><p id="pageSubtitle">Your hiring pipeline at a glance.</p></div>
+    <div class="top-actions"><button class="icon-btn" data-view-link="notifications" title="Notifications" aria-label="Open notifications">🔔</button><div class="avatar" id="headerAvatar">HT</div></div>
+  </header>
+  <section id="overviewView" class="dashboard-view"></section>
+  <section id="contentView" class="dashboard-view" hidden></section>
+  <div id="dashboardToast" class="dashboard-toast" role="status" aria-live="polite" hidden></div>
+</main>
+
+<dialog id="candidateDialog" class="candidate-dialog">
+  <div class="dialog-head"><div><span class="section-kicker">CANDIDATE PROFILE</span><h2 id="candidateDialogTitle">Candidate</h2></div><button class="side-more" data-action="close-dialog" aria-label="Close profile">×</button></div>
+  <div id="candidateDialogBody"></div>
+</dialog>
+<dialog id="jobDialog" class="candidate-dialog">
+  <div class="dialog-head"><div><span class="section-kicker">VACANCY EDITOR</span><h2>Edit job</h2></div><button class="side-more" data-action="close-job-dialog" aria-label="Close job editor">×</button></div>
+  <form id="editJobForm" class="recruiter-form"><input name="jobId" type="hidden"><label>Job title<input name="title" required></label><div class="two-col"><label>Location<input name="location" required></label><label>Job type<select name="employmentType"><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option><option>Hybrid</option><option>Remote</option></select></label></div><div class="two-col"><label>Minimum salary<input name="salaryMin" type="number" min="0"></label><label>Maximum salary<input name="salaryMax" type="number" min="0"></label></div><label>Required skills<input name="requiredSkills"></label><label>Experience<input name="experience"></label><label class="toggle-row"><input name="remote" type="checkbox"> Remote</label><label>Description<textarea name="description" rows="5" required></textarea></label><button class="btn btn-primary" type="submit">Save job</button></form>
+</dialog>
+<script src="js/api.js"></script><script src="js/recruiter-dashboard.js"></script>
+</body></html>

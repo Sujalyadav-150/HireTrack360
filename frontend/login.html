@@ -8,20 +8,21 @@
 <div class="auth-shell">
   <div class="auth-brand"><a class="brand" href="index.html"><span class="brand-mark">H</span> HireTrack <b>360</b></a></div>
   <div class="auth-card">
-    <div class="auth-head"><div class="mini-icon">↗</div><h1>Welcome back</h1><p>Choose how you want to continue.</p></div>
+    <div class="auth-head"><div class="mini-icon">↗</div><h1>Welcome back</h1><p>How do you want to continue?</p></div>
     <div class="role-tabs">
-      <button class="role-tab active" data-role="job_seeker"><span>👤</span><div><b>Job Seeker</b><small>Find your next opportunity</small></div></button>
-      <button class="role-tab" data-role="recruiter"><span>💼</span><div><b>Recruiter</b><small>Build your hiring pipeline</small></div></button>
+      <button class="role-tab active" data-role="jobseeker" type="button"><span>👤</span><div><b>Job Seeker</b><small>Find and apply for jobs</small></div></button>
+      <button class="role-tab" data-role="recruiter" type="button"><span>💼</span><div><b>Recruiter</b><small>Post and manage jobs</small></div></button>
     </div>
     <form id="loginForm">
-      <input type="hidden" id="role" value="job_seeker">
+      <input type="hidden" id="role" value="jobseeker">
       <label>Email address<input id="email" type="email" placeholder="you@example.com" required></label>
       <label>Password<div class="password-wrap"><input id="password" type="password" placeholder="••••••••" required><button type="button" id="togglePass">Show</button></div></label>
-      <div class="form-row"><label class="check"><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div>
+      <div class="form-row"><label class="check"><input type="checkbox"> Remember me</label><a href="forgot-password.html">Forgot password?</a></div>
+      <p class="auth-message" id="authMessage" role="alert" aria-live="polite" hidden></p>
       <button class="btn btn-primary btn-full" type="submit">Sign in <span>→</span></button>
     </form>
     <p class="switch-auth">New to HireTrack? <a href="signup.html">Create an account</a></p>
   </div>
 </div>
-<script src="js/auth.js"></script>
+<script src="js/api.js"></script><script src="js/auth.js"></script>
 </body></html>

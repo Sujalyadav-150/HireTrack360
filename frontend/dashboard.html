@@ -4,70 +4,85 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Dashboard — HireTrack 360</title><link rel="stylesheet" href="css/style.css">
 </head>
-<body class="app-page">
+<body class="app-page jobseeker-page">
 <aside class="sidebar">
-  <a class="brand" href="#"><span class="brand-mark">H</span> HireTrack <b>360</b></a>
+  <a class="brand" href="#overview" data-view-link="overview"><span class="brand-mark">H</span> HireTrack <b>360</b></a>
   <div class="side-label">Workspace</div>
   <nav>
-    <a class="nav-item active" href="#"><span>⌂</span> Overview</a>
-    <a class="nav-item" href="#"><span>⌕</span> Find Jobs</a>
-    <a class="nav-item" href="#"><span>▣</span> Applications</a>
-    <a class="nav-item" href="#"><span>★</span> Saved Jobs</a>
-    <a class="nav-item" href="#"><span>◈</span> Career Gaps</a>
+    <a class="nav-item active" href="#overview" data-view-link="overview"><span>⌂</span> Dashboard</a>
+    <a class="nav-item" href="#find-jobs" data-view-link="find-jobs"><span>⌕</span> Find Jobs</a>
+    <a class="nav-item" href="#recommended-jobs" data-view-link="recommended-jobs"><span>✦</span> Recommended Jobs</a>
+    <a class="nav-item" href="#applications" data-view-link="applications"><span>▣</span> My Applications</a>
+    <a class="nav-item" href="#saved-jobs" data-view-link="saved-jobs"><span>★</span> Saved Jobs</a>
   </nav>
   <div class="side-label">Personal</div>
   <nav>
-    <a class="nav-item" href="#"><span>▤</span> Resumes</a>
-    <a class="nav-item" href="#"><span>◷</span> Interviews</a>
-    <a class="nav-item" href="#"><span>⚙</span> Settings</a>
+    <a class="nav-item" href="#profile" data-view-link="profile"><span>▤</span> My Resume / Profile</a>
+    <a class="nav-item" href="#interviews" data-view-link="interviews"><span>◷</span> Interviews</a>
+    <a class="nav-item" href="#notifications" data-view-link="notifications"><span>♢</span> Notifications</a>
   </nav>
-  <div class="side-profile"><div class="avatar">SY</div><div><b>Sujal Yadav</b><small>Job Seeker</small></div><span>•••</span></div>
+  <div class="side-profile"><div class="avatar">SY</div><div><b>Sujal Yadav</b><small>Job Seeker</small></div><button class="side-more" data-action="sign-out" title="Sign out" aria-label="Sign out">↪</button></div>
 </aside>
 
 <main class="dashboard-main">
   <header class="topbar">
-    <div><span class="mobile-menu">☰</span><h2>Good evening, Sujal <span>👋</span></h2><p>Here’s what’s happening with your job search.</p></div>
-    <div class="top-actions"><button class="icon-btn">🔔<i></i></button><div class="avatar">SY</div></div>
+    <div><span class="mobile-menu">☰</span><h2 id="pageTitle">Good evening, Sujal <span>👋</span></h2><p id="pageSubtitle">Here’s what’s happening with your job search.</p></div>
+    <div class="top-actions"><button class="icon-btn" data-view-link="notifications" title="Notifications" aria-label="Open notifications">🔔<i></i></button><div class="avatar" id="headerAvatar">SY</div></div>
   </header>
 
+  <div id="overviewView" class="dashboard-view">
   <section class="stats-grid">
-    <article class="stat-card"><div class="stat-icon blue">↗</div><div><small>Applications</small><strong>24</strong><em>+4 this week</em></div></article>
-    <article class="stat-card"><div class="stat-icon purple">◉</div><div><small>Avg. Match Score</small><strong>78%</strong><em>+6% improvement</em></div></article>
-    <article class="stat-card"><div class="stat-icon orange">⚠</div><div><small>Needs Follow-up</small><strong>3</strong><em class="warning">Action needed</em></div></article>
-    <article class="stat-card"><div class="stat-icon green">✓</div><div><small>Interviews</small><strong>5</strong><em>2 this week</em></div></article>
+    <article class="stat-card"><div class="stat-icon blue">↗</div><div><small>Applied</small><strong data-stat="applied">0</strong><em>Applications submitted</em></div></article>
+    <article class="stat-card"><div class="stat-icon purple">◉</div><div><small>Under Review</small><strong data-stat="review">0</strong><em>Applications in review</em></div></article>
+    <article class="stat-card"><div class="stat-icon green">✓</div><div><small>Shortlisted</small><strong data-stat="shortlisted">0</strong><em>Moving forward</em></div></article>
+    <article class="stat-card"><div class="stat-icon orange">◷</div><div><small>Interviews</small><strong data-stat="interviews">0</strong><em>Interview stage</em></div></article>
+    <article class="stat-card"><div class="stat-icon blue">★</div><div><small>Saved Jobs</small><strong id="savedJobCount">0</strong><em>Ready to revisit</em></div></article>
+  </section>
+
+  <section class="panel status-pipeline-panel">
+    <div class="panel-head"><div><span class="section-kicker">APPLICATION JOURNEY</span><h3>Application status</h3></div><a href="#applications" data-view-link="applications">Track applications →</a></div>
+    <div class="application-pipeline"><span class="current">Applied</span><i></i><span>Under Review</span><i></i><span>Shortlisted</span><i></i><span>Interview</span><i></i><span>Selected / Rejected</span></div>
   </section>
 
   <section class="dashboard-grid">
     <article class="panel match-panel">
-      <div class="panel-head"><div><span class="section-kicker">TOP OPPORTUNITY</span><h3>Your strongest match</h3></div><a href="#">View all →</a></div>
-      <div class="job-highlight">
+      <div class="panel-head"><div><span class="section-kicker">RECOMMENDED JOBS</span><h3>Your strongest match</h3></div><a href="#recommended-jobs" data-view-link="recommended-jobs">View recommendations →</a></div>
+      <div class="job-highlight" id="featuredJob">
         <div class="company-logo">FE</div>
-        <div class="job-title"><h4>Data Analyst</h4><p>FinEdge Technologies · Bangalore</p><div class="chips"><span>Full-time</span><span>₹6–9 LPA</span><span>Hybrid</span></div></div>
+        <div class="job-title"><h4>Data Analyst</h4><p>FinEdge Technologies · Bangalore</p><div class="chips"><span>Full-time</span><span>₹6–9 LPA</span><span>Hybrid</span></div><div class="inline-actions"><button class="btn btn-dark" data-action="save-job" data-job-id="analyst">Save job</button><button class="btn btn-primary" data-action="apply-job" data-job-id="analyst">Apply</button></div></div>
         <div class="big-match"><b>87%</b><small>match</small></div>
       </div>
       <div class="skill-match"><div><span>SQL</span><i><b style="width:94%"></b></i><strong>94%</strong></div><div><span>Excel</span><i><b style="width:88%"></b></i><strong>88%</strong></div><div><span>Power BI</span><i><b style="width:82%"></b></i><strong>82%</strong></div><div><span>Python</span><i><b style="width:68%"></b></i><strong>68%</strong></div></div>
-      <div class="missing-skill"><span>⚡</span><div><b>One skill gap detected</b><small>AWS basics could increase your match score.</small></div><button>View gap →</button></div>
+      <div class="missing-skill"><span>⚡</span><div><b>One skill gap detected</b><small>AWS basics could increase your match score.</small></div><button data-view-link="career-gaps">View gap →</button></div>
     </article>
 
-    <article class="panel health-panel">
-      <div class="panel-head"><div><span class="section-kicker">APPLICATION INTELLIGENCE</span><h3>Application Health</h3></div><a href="#">All applications →</a></div>
+    <article class="panel health-panel" id="applicationStatusPanel">
+      <div class="panel-head"><div><span class="section-kicker">APPLICATION INTELLIGENCE</span><h3>Application Health</h3></div><a href="#applications" data-view-link="applications">All applications →</a></div>
       <div class="health-item danger"><div class="health-dot"></div><div><b>Data Analyst · FinEdge</b><small>No update for 8 days</small></div><span>Follow up</span></div>
       <div class="health-item warning"><div class="health-dot"></div><div><b>Business Analyst · Nova</b><small>No update for 6 days</small></div><span>Monitor</span></div>
       <div class="health-item good"><div class="health-dot"></div><div><b>Analyst · TechSphere</b><small>Updated 2 days ago</small></div><span>Healthy</span></div>
-      <div class="health-summary"><strong>3</strong><span>applications need your attention</span><button class="btn btn-dark">Review now</button></div>
+      <div class="health-summary"><strong>3</strong><span>applications need your attention</span><button class="btn btn-dark" data-view-link="applications">Review now</button></div>
     </article>
   </section>
 
   <section class="dashboard-grid lower">
-    <article class="panel">
-      <div class="panel-head"><div><span class="section-kicker">JOB SAFETY</span><h3>Trust signals</h3></div><a href="#">Learn more →</a></div>
+    <article class="panel" id="trustPanel">
+      <div class="panel-head"><div><span class="section-kicker">JOB SAFETY</span><h3>Trust signals</h3></div><a href="#trust" data-view-link="trust">Learn more →</a></div>
       <div class="trust-score"><div class="trust-circle"><b>86</b><small>/100</small></div><div><h4>FinEdge Technologies</h4><p>Job Trust Score <span class="safe">● Trusted</span></p><div class="signal-list"><span>✓ Company domain verified</span><span>✓ Company website found</span><span>✓ No payment request detected</span></div></div></div>
     </article>
     <article class="panel">
-      <div class="panel-head"><div><span class="section-kicker">THIS WEEK</span><h3>Application funnel</h3></div><a href="#">Analytics →</a></div>
-      <div class="funnel"><div><span>Applied</span><b style="width:100%">24</b></div><div><span>Screening</span><b style="width:63%">15</b></div><div><span>Interview</span><b style="width:29%">7</b></div><div><span>Offer</span><b style="width:8%">2</b></div></div>
+      <div class="panel-head"><div><span class="section-kicker">THIS WEEK</span><h3>Application funnel</h3></div><a href="#analytics" data-view-link="analytics">Analytics →</a></div>
+      <div class="funnel" id="applicationFunnel"></div>
     </article>
+    <article class="panel profile-completion-panel"><div class="panel-head"><div><span class="section-kicker">YOUR PROFILE</span><h3>Profile completion</h3></div><a href="#profile" data-view-link="profile">Complete profile →</a></div><div class="completion-meter" id="profileCompletion"><strong>20%</strong><div><i></i></div><p>Add skills and a resume to strengthen your profile.</p></div></article>
   </section>
+  <section class="dashboard-grid lower">
+    <article class="panel"><div class="panel-head"><div><span class="section-kicker">NEW OPPORTUNITIES</span><h3>Recently posted jobs</h3></div><a href="#find-jobs" data-view-link="find-jobs">Find jobs →</a></div><div class="home-job-list" id="recentPostedJobs"></div></article>
+    <article class="panel"><div class="panel-head"><div><span class="section-kicker">BOOKMARKS</span><h3>Saved jobs</h3></div><a href="#saved-jobs" data-view-link="saved-jobs">All saved jobs →</a></div><div class="home-job-list" id="homeSavedJobs"></div></article>
+  </section>
+  </div>
+  <section id="contentView" class="dashboard-view" hidden></section>
+  <div id="dashboardToast" class="dashboard-toast" role="status" aria-live="polite" hidden></div>
 </main>
-<script src="js/dashboard.js"></script>
+<script src="js/api.js"></script><script src="js/dashboard.js"></script>
 </body></html>

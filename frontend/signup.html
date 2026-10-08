@@ -10,21 +10,25 @@
   <div class="auth-card signup-card">
     <div class="auth-head"><div class="mini-icon">+</div><h1>Create your account</h1><p>Start with the experience built for your role.</p></div>
     <div class="role-tabs">
-      <button class="role-tab active" data-role="job_seeker"><span>👤</span><div><b>Job Seeker</b><small>Discover & track jobs</small></div></button>
+      <button class="role-tab active" data-role="jobseeker"><span>👤</span><div><b>Job Seeker</b><small>Discover & track jobs</small></div></button>
       <button class="role-tab" data-role="recruiter"><span>💼</span><div><b>Recruiter</b><small>Hire better candidates</small></div></button>
     </div>
     <form id="signupForm">
-      <input type="hidden" id="role" value="job_seeker">
+      <input type="hidden" id="role" value="jobseeker">
       <div class="two-col">
-        <label>Full name<input id="name" required placeholder="Your name"></label>
-        <label>Email<input id="email" type="email" required placeholder="you@example.com"></label>
+        <label>Full name<input id="name" required maxlength="100" placeholder="Your name"></label>
+          <label id="emailLabel">Email<input id="email" type="email" required maxlength="254" placeholder="you@example.com"></label>
       </div>
-      <label>Password<div class="password-wrap"><input id="password" type="password" required placeholder="Create a strong password"><button type="button" id="togglePass">Show</button></div></label>
       <div id="dynamicFields"></div>
+      <div class="two-col">
+        <label>Password<div class="password-wrap"><input id="password" type="password" minlength="8" required placeholder="At least 8 characters"><button type="button" id="togglePass">Show</button></div></label>
+        <label>Confirm password<input id="confirmPassword" type="password" minlength="8" required placeholder="Repeat password"></label>
+      </div>
+      <p class="auth-message" id="authMessage" role="alert" aria-live="polite" hidden></p>
       <button class="btn btn-primary btn-full" type="submit">Create account <span>→</span></button>
     </form>
     <p class="switch-auth">Already have an account? <a href="login.html">Sign in</a></p>
   </div>
 </div>
-<script src="js/auth.js"></script>
+<script src="js/api.js"></script><script src="js/auth.js"></script>
 </body></html>
