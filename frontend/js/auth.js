@@ -43,9 +43,8 @@ roleButtons.forEach(button => {
 function renderDynamicFields() {
   const box = document.getElementById("dynamicFields");
   if (emailLabel && roleInput) {
-    emailLabel.firstChild.nodeType === Node.TEXT_NODE
-      ? emailLabel.firstChild.textContent = roleInput.value === "recruiter" ? "Work email " : "Email "
-      : emailLabel.insertBefore(document.createTextNode(roleInput.value === "recruiter" ? "Work email " : "Email "), emailLabel.firstChild);
+    const textNode = Array.from(emailLabel.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+    if (textNode) textNode.textContent = roleInput.value === "recruiter" ? "Work email " : "Email ";
   }
   if (!box || !roleInput) return;
   box.innerHTML = roleInput.value === "recruiter"
