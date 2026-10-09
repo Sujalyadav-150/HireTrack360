@@ -7,6 +7,9 @@ const resumeSchema = new mongoose.Schema({
   fileName:{type:String,required:true},
   mimeType:{type:String,required:true},
   size:{type:Number,required:true},
+  extractedSkills:{type:[String],default:[]},
+  extractionStatus:{type:String,enum:["complete","partial","unsupported","failed"],default:"unsupported"},
+  extractionMessage:{type:String,default:""},
   path:{type:String,required:true,select:false},
   uploadedAt:{type:Date,default:Date.now}
 },{timestamps:true});
