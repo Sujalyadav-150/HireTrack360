@@ -24,6 +24,7 @@ const ActivityLog = require("./models/ActivityLog");
 const { calculateMatch, calculateTrust, calculateJobRisk, normalizeUserRole } = require("./utils/scoring");
 const { sendPasswordReset, sendInterviewEmail, sendApplicationStatusEmail } = require("./services/emailService");
 const { createNotification, pushConfigured } = require("./services/notificationService");
+const { extractResumeSkills } = require("./utils/resumeParser");
 
 const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === "production"
   ? null
@@ -761,13 +762,14 @@ app.get("/api/applications/recruiter", authenticate, requireRole("recruiter"), a
 });
 
 app.get("/api/resumes/mine", authenticate, requireRole("jobseeker"), async (req, res) => {
-  const resumes = await Resume.find({ userId: req.user._id }).select("name targetRole fileName size mimeType uploadedAt createdAt").sort({ uploadedAt: -1 }).lean();
+  const resumes = await Resume.find({ userId: req.user._id }).select("name targetRole fileName size mimeType uploadedAt createdAt extractedSkills extractionStatus extractionMessage").sort({ uploadedAt: -1 }).lean();
   res.json({ success: true, resumes });
 });
 
 app.post("/api/resumes/upload", authenticate, requireRole("jobseeker"), resumeUpload.single("resume"), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: "Choose a resume file" });
   try {
+    const extraction = await extractResumeSkills(req.file.path, req.file.originalname);
     const resume = await Resume.create({
       userId: req.user._id,
       name: (req.body.name || path.parse(req.file.originalname).name).trim().slice(0, 100),
@@ -775,17 +777,42 @@ app.post("/api/resumes/upload", authenticate, requireRole("jobseeker"), resumeUp
       fileName: path.basename(req.file.originalname),
       mimeType: req.file.mimetype,
       size: req.file.size,
-      path: req.file.path
+      path: req.file.path,
+      extractedSkills: extraction.skills,
+      extractionStatus: extraction.status,
+      extractionMessage: extraction.message
     });
-    req.user.resumeVersions.push({ name: resume.name, url: `/api/resumes/${resume._id}/download`, targetRole: resume.targetRole });
+    req.user.resumeVersions.push({ name: resume.name, url: `/api/resumes/${resume._id}/view`, targetRole: resume.targetRole });
+    if (extraction.skills.length) {
+      const existingSkills = new Set((req.user.skills || []).map(skill => String(skill).trim().toLowerCase()));
+      req.user.skills = [...(req.user.skills || []), ...extraction.skills.filter(skill => !existingSkills.has(skill.toLowerCase()))];
+    }
     await req.user.save();
     await recordActivity(req.user._id, "RESUME_UPLOADED", "Resume", resume._id);
-    res.status(201).json({ success: true, resume: { id: resume._id, name: resume.name, targetRole: resume.targetRole, fileName: resume.fileName, uploadedAt: resume.uploadedAt } });
+    res.status(201).json({ success: true, message: extraction.skills.length ? `Resume uploaded; extracted ${extraction.skills.length} skills` : "Resume uploaded; no readable skills were detected", resume: { id: resume._id, name: resume.name, targetRole: resume.targetRole, fileName: resume.fileName, uploadedAt: resume.uploadedAt, extractedSkills: extraction.skills, extractionStatus: extraction.status, extractionMessage: extraction.message } });
   } catch (error) {
     await fs.promises.unlink(req.file.path).catch(() => {});
     console.error("Resume upload error:", error.message);
     res.status(500).json({ success: false, message: "Could not save this resume" });
   }
+});
+
+app.get("/api/resumes/:resumeId/view", authenticate, async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.resumeId)) return res.status(404).json({ success: false, message: "Resume not found" });
+  const resume = await Resume.findById(req.params.resumeId).select("+path");
+  if (!resume) return res.status(404).json({ success: false, message: "Resume not found" });
+  let authorized = req.user.role === "jobseeker" && resume.userId.toString() === req.user._id.toString();
+  if (!authorized && req.user.role === "recruiter") {
+    const applications = await Application.find({ candidateId: resume.userId, resumeId: resume._id }).select("jobId").lean();
+    const job = applications.length ? await Job.exists({ _id: { $in: applications.map(application => application.jobId) }, recruiterId: req.user._id }) : null;
+    authorized = Boolean(job);
+  }
+  if (!authorized) return res.status(403).json({ success: false, message: "You cannot access this resume" });
+  if (!fs.existsSync(resume.path)) return res.status(404).json({ success: false, message: "Resume file is no longer available" });
+  res.setHeader("Content-Type", resume.mimeType || "application/octet-stream");
+  res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(resume.fileName)}`);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.sendFile(path.resolve(resume.path));
 });
 
 app.get("/api/resumes/:resumeId/download", authenticate, async (req, res) => {
