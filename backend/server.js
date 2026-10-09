@@ -71,7 +71,7 @@ const resumeUpload = multer({
     destination: (_req, _file, callback) => callback(null, uploadDirectory),
     filename: (_req, file, callback) => callback(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`)
   }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  limits: { fileSize: 4 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, callback) => {
     const extension = path.extname(file.originalname).toLowerCase();
     if ([".pdf", ".doc", ".docx"].includes(extension)) return callback(null, true);
@@ -1073,11 +1073,6 @@ async function start() {
     } else {
       console.log("MONGODB_URI not configured; starting API in demo mode");
     }
-    app.use((error, _req, res, _next) => {
-      console.error("Request error:", error.message);
-      const status = error instanceof multer.MulterError ? 400 : 500;
-      res.status(status).json({ success: false, message: error instanceof multer.MulterError ? "Resume upload failed or exceeded 5 MB" : error.message.includes("Resume must be") ? error.message : "An unexpected server error occurred" });
-    });
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Push notifications ${pushConfigured ? "configured" : "unconfigured"}`);
       console.log(`Cron ${cronEnabled ? "enabled" : "disabled"}`);
@@ -1092,6 +1087,22 @@ async function start() {
     process.exit(1);
   }
 }
+
+// Register the error handler for both local Express and Vercel serverless requests.
+app.use((error, _req, res, _next) => {
+  console.error("Request error:", error.message);
+  if (res.headersSent) return;
+  if (error instanceof multer.MulterError) {
+    const message = error.code === "LIMIT_FILE_SIZE"
+      ? "Resume file must be 4 MB or smaller on the hosted site."
+      : "Resume upload failed. Please upload one PDF, DOC, or DOCX file.";
+    return res.status(400).json({ success: false, message });
+  }
+  if (error.message?.includes("Resume must be")) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  return res.status(500).json({ success: false, message: "The server could not complete the request. Check the server logs for the underlying error." });
+});
 
 // Export the Express app for serverless adapters; only start a listening server
 // when this file is executed directly (local development / VPS).
