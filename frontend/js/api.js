@@ -3,18 +3,31 @@ const API_BASE = (() => {
 })();
 
 async function apiRequest(path, options = {}) {
+  // Authentication is shared between tabs on the same origin. Prefer the current
+  // token but handle expired/stale sessions consistently for every page.
   const token = localStorage.getItem("hiretrack_token");
   const headers = { ...(options.headers || {}) };
   if (!(options.body instanceof FormData)) headers["Content-Type"] = headers["Content-Type"] || "application/json";
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: "same-origin",
     headers: {
       ...(token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {}),
       ...headers
     }
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.message || "The server could not complete this request");
+  if (!response.ok) {
+    // A stale token is commonly left behind when the user switches accounts in
+    // another tab. Remove it so the user can sign in again rather than retry
+    // mutations with a different account's role.
+    if (response.status === 401) {
+      localStorage.removeItem("hiretrack_token");
+      localStorage.removeItem("hiretrack_role");
+      localStorage.removeItem("hiretrack_name");
+    }
+    throw new Error(result.message || "The server could not complete this request");
+  }
   return result;
 }
 
