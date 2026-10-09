@@ -158,7 +158,7 @@ function renderCareerGaps() {
 }
 
 function renderResumes() {
-  const resumeRows = resumes.length ? resumes.map(resume => `<article class="view-card compact-row"><div><span class="section-kicker">${escapeHtml(resume.targetRole || "RESUME")}</span><h3>${escapeHtml(resume.name)}</h3><p>${escapeHtml(resume.fileName)} · Added ${new Date(resume.uploadedAt).toLocaleDateString()}</p><a href="/api/resumes/${encodeURIComponent(resume.id)}/download">View resume</a></div><button class="btn btn-ghost" data-action="remove-resume" data-resume-id="${escapeHtml(resume.id)}">Remove</button></article>`).join("") : `<div class="view-card empty-state"><h3>No resumes added</h3><p>Upload a PDF, DOC, or DOCX file to keep a private version in your profile.</p></div>`;
+  const resumeRows = resumes.length ? resumes.map(resume => `<article class="view-card compact-row"><div><span class="section-kicker">${escapeHtml(resume.targetRole || "RESUME")}</span><h3>${escapeHtml(resume.name)}</h3><p>${escapeHtml(resume.fileName)} · Added ${new Date(resume.uploadedAt).toLocaleDateString()}</p><div class="view-card-actions"><a href="/api/resumes/${encodeURIComponent(resume.id)}/view" target="_blank" rel="noopener noreferrer">View resume</a><a href="/api/resumes/${encodeURIComponent(resume.id)}/download">Download</a></div><p><strong>Extracted skills:</strong> ${resume.extractedSkills?.length ? resume.extractedSkills.map(escapeHtml).join(", ") : escapeHtml(resume.extractionMessage || "No skills extracted yet")}</p></div><button class="btn btn-ghost" data-action="remove-resume" data-resume-id="${escapeHtml(resume.id)}">Remove</button></article>`).join("") : `<div class="view-card empty-state"><h3>No resumes added</h3><p>Upload a PDF, DOC, or DOCX file to keep a private version in your profile.</p></div>`;
   return `<form id="resumeForm" class="view-card upload-form"><label>Resume name<input name="name" maxlength="100" placeholder="Data Analyst Resume"></label><label>Target role<input name="targetRole" maxlength="100" placeholder="Data Analyst"></label><label for="resumeFile">Resume file (PDF, DOC, DOCX; max 5 MB)</label><input id="resumeFile" name="resume" type="file" accept=".pdf,.doc,.docx" required><button class="btn btn-primary" type="submit">Upload resume</button></form><div class="view-list">${resumeRows}</div>`;
 }
 
@@ -525,10 +525,11 @@ contentView.addEventListener("submit", async event => {
   } else if (event.target.id === "resumeForm") {
     try {
       const formData = new FormData(event.target);
-      await window.apiRequest("/resumes/upload", { method: "POST", body: formData });
+      const uploadResult = await window.apiRequest("/resumes/upload", { method: "POST", body: formData });
       await refreshCandidateData();
       renderView();
-      showToast("Resume uploaded");
+      const extractedCount = uploadResult.resume?.extractedSkills?.length || 0;
+      showToast(extractedCount ? `Resume uploaded; ${extractedCount} skills extracted` : (uploadResult.message || "Resume uploaded; no readable skills detected"));
     } catch (error) { showToast(error.message); }
   } else if (event.target.id === "settingsForm") {
     const formData = new FormData(event.target);
