@@ -236,39 +236,70 @@ function applicationStatus(status) {
 }
 
 async function refreshCandidateData() {
-  const [jobResult, recommendationResult, dashboardResult, notificationResult] = await Promise.all([
+  // Load the public job list independently. A failure in recommendations,
+  // notifications, or dashboard widgets must never hide jobs that the API
+  // successfully returned.
+  const results = await Promise.allSettled([
     window.apiRequest("/jobs?page=1&limit=12"),
     window.apiRequest("/jobs/recommended?page=1&limit=12"),
     window.apiRequest("/jobseeker/dashboard"),
     window.apiRequest("/notifications/mine?limit=30")
   ]);
-  jobs = jobResult.jobs.map(normalizeJob);
-  recommendedJobs = recommendationResult.jobs.map(normalizeJob);
-  jobPagination = jobResult.pagination;
-  savedJobs = dashboardResult.savedJobs.map(normalizeJob);
+
+  const [jobResultState, recommendationState, dashboardState, notificationState] = results;
+  if (jobResultState.status === "fulfilled") {
+    const jobResult = jobResultState.value || {};
+    jobs = Array.isArray(jobResult.jobs) ? jobResult.jobs.map(normalizeJob) : [];
+    jobPagination = jobResult.pagination || { page: 1, pages: 1, total: jobs.length };
+  } else {
+    jobs = [];
+    jobPagination = { page: 1, pages: 1, total: 0 };
+    console.error("Could not load open jobs:", jobResultState.reason);
+  }
+
+  const recommendationResult = recommendationState.status === "fulfilled" ? recommendationState.value : {};
+  recommendedJobs = Array.isArray(recommendationResult.jobs) ? recommendationResult.jobs.map(normalizeJob) : [];
+  if (recommendationState.status === "rejected") console.warn("Job recommendations unavailable:", recommendationState.reason);
+
+  const dashboardResult = dashboardState.status === "fulfilled" ? dashboardState.value : {};
+  if (dashboardState.status === "rejected") console.warn("Some dashboard widgets are unavailable:", dashboardState.reason);
+  savedJobs = Array.isArray(dashboardResult.savedJobs) ? dashboardResult.savedJobs.map(normalizeJob) : [];
   savedJobIds = savedJobs.map(job => job.id);
-  resumes = dashboardResult.resumes.map(resume => ({
+  resumes = (Array.isArray(dashboardResult.resumes) ? dashboardResult.resumes : []).map(resume => ({
     ...resume,
     id: String(resume.id || resume._id || ""),
     fileName: resume.fileName || resume.originalName || resume.name || "Resume file",
     uploadedAt: resume.uploadedAt || resume.createdAt || Date.now()
   })).filter(resume => resume.id);
-  interviews = dashboardResult.interviews;
-  staleApplicationIds = dashboardResult.staleApplications.map(String);
-  notifications = notificationResult.notifications;
-  unreadNotificationCount = notificationResult.unreadCount;
-  applications = dashboardResult.applications.filter(application => application.jobId).map(application => ({
-    id: String(application._id),
-    jobId: String(application.jobId._id),
-    title: application.jobId.title,
-    company: application.jobId.company,
-    status: applicationStatus(application.status),
-    appliedAt: new Date(application.appliedAt || application.createdAt).toLocaleDateString(),
-    updated: applicationStatus(application.status) + " · " + new Date(application.lastUpdatedAt || application.lastUpdated || application.createdAt).toLocaleDateString(),
-    needsFollowUp: staleApplicationIds.includes(String(application._id)) || application.followUpRequired,
-    statusHistory: application.statusHistory || []
-  }));
-  if ((recommendedJobs[0] || jobs[0]) && !selectedJobDetails) await selectJob((recommendedJobs[0] || jobs[0]).id);
+  interviews = Array.isArray(dashboardResult.interviews) ? dashboardResult.interviews : [];
+  staleApplicationIds = (Array.isArray(dashboardResult.staleApplications) ? dashboardResult.staleApplications : []).map(String);
+
+  const notificationResult = notificationState.status === "fulfilled" ? notificationState.value : {};
+  notifications = Array.isArray(notificationResult.notifications) ? notificationResult.notifications : [];
+  unreadNotificationCount = Number(notificationResult.unreadCount || 0);
+
+  applications = (Array.isArray(dashboardResult.applications) ? dashboardResult.applications : [])
+    .filter(application => application.jobId && typeof application.jobId === "object")
+    .map(application => ({
+      id: String(application._id),
+      jobId: String(application.jobId._id),
+      title: application.jobId.title,
+      company: application.jobId.company,
+      status: applicationStatus(application.status),
+      appliedAt: new Date(application.appliedAt || application.createdAt).toLocaleDateString(),
+      updated: applicationStatus(application.status) + " · " + new Date(application.lastUpdatedAt || application.lastUpdated || application.createdAt).toLocaleDateString(),
+      needsFollowUp: staleApplicationIds.includes(String(application._id)) || application.followUpRequired,
+      statusHistory: Array.isArray(application.statusHistory) ? application.statusHistory : []
+    }));
+
+  if ((recommendedJobs[0] || jobs[0]) && !selectedJobDetails) {
+    try {
+      await selectJob((recommendedJobs[0] || jobs[0]).id);
+    } catch (error) {
+      // Job cards can still be browsed when the optional detail endpoint fails.
+      console.warn("Job detail preview unavailable:", error);
+    }
+  }
 }
 
 async function loadJobs(filters = {}, page = 1) {
