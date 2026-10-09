@@ -8,3 +8,10 @@ module.exports = function routeHandler(req, res) {
   req.url = "/api/resumes/upload" + query;
   return apiHandler(req, res);
 };
+
+// Multipart requests must reach multer as an unconsumed stream.
+module.exports.config = {
+  api: {
+    bodyParser: false
+  }
+};
