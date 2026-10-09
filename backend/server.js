@@ -1092,4 +1092,8 @@ async function start() {
     process.exit(1);
   }
 }
-start();
+
+// Export the Express app for serverless adapters; only start a listening server
+// when this file is executed directly (local development / VPS).
+if (require.main === module) start();
+module.exports = app;
