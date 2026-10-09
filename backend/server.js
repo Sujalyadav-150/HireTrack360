@@ -125,7 +125,7 @@ function sendAuthSuccess(res, user, status = 200) {
     path: "/",
     maxAge: 7 * 86400000
   });
-  return res.status(status).json({ success: true, user: publicUser(user) });
+  return res.status(status).json({ success: true, token, user: publicUser(user) });
 }
 
 async function authenticate(req, res, next) {
