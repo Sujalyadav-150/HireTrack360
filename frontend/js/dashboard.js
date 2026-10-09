@@ -243,7 +243,12 @@ async function refreshCandidateData() {
   jobPagination = jobResult.pagination;
   savedJobs = dashboardResult.savedJobs.map(normalizeJob);
   savedJobIds = savedJobs.map(job => job.id);
-  resumes = dashboardResult.resumes;
+  resumes = dashboardResult.resumes.map(resume => ({
+    ...resume,
+    id: String(resume.id || resume._id || ""),
+    fileName: resume.fileName || resume.originalName || resume.name || "Resume file",
+    uploadedAt: resume.uploadedAt || resume.createdAt || Date.now()
+  })).filter(resume => resume.id);
   interviews = dashboardResult.interviews;
   staleApplicationIds = dashboardResult.staleApplications.map(String);
   notifications = notificationResult.notifications;
