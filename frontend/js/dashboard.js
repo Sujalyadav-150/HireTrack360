@@ -390,16 +390,11 @@ async function handleAction(button) {
     }
     button.disabled = true;
     try {
-      const result = await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/save`, { method: "POST" });
-      if (result.saved !== false) {
-        // The endpoint toggles state; if it returned saved=true then we just
-        // re-saved the job, so immediately toggle once more to undo the action.
-        await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/save`, { method: "POST" });
-        throw new Error("The job was not removed. Please try again.");
-      }
+      await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/save`, { method: "POST" });
       await refreshCandidateData();
+      const stillSaved = savedJobIds.some(id => String(id) === String(jobId));
       renderView();
-      showToast("Job removed from saved jobs");
+      showToast(stillSaved ? "The job is still saved. Please try again." : "Job removed from saved jobs");
     } catch (error) {
       showToast(error.message);
       try { await refreshCandidateData(); renderView(); } catch {}
