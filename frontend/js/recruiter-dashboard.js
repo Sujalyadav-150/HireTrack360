@@ -296,8 +296,8 @@
         const candidate = application.candidateId || {};
         document.getElementById("candidateDialogTitle").textContent = candidate.name || "Candidate profile";
         const selectedResumeId = String(application.resumeId?._id || application.resumeId || "");
-        const safeResumeId = /^[a-f\\d]{24}$/i.test(selectedResumeId) ? selectedResumeId : "";
-        const resumeName = String(application.resumeVersion || (candidate.resumeVersions || []).find(resume => String(resume.url || "").match(/[a-f\\d]{24}/i)?.[0] === safeResumeId)?.name || "Resume");
+        const safeResumeId = /^[a-f\d]{24}$/i.test(selectedResumeId) ? selectedResumeId : "";
+        const resumeName = String(application.resumeVersion || (candidate.resumeVersions || []).find(resume => String(resume.url || "").match(/[a-f\d]{24}/i)?.[0] === safeResumeId)?.name || "Resume");
         const viewResumeUrl = safeResumeId ? `/api/resumes/${safeResumeId}/view` : "";
         const downloadResumeUrl = safeResumeId ? `/api/resumes/${safeResumeId}/download` : "";
         const resumeLinks = safeResumeId
