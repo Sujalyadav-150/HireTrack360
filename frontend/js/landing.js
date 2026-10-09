@@ -1,2 +1,2 @@
-// The landing page always remains the public entry point. Do not replace
-// the sign-in / sign-up controls with a direct dashboard shortcut.
+// Keep the public landing page as the entry point even when a session exists.
+// Users choose their workspace by signing in; dashboard pages enforce roles themselves.
