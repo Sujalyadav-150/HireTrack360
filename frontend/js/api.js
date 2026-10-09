@@ -18,7 +18,9 @@ async function apiRequest(path, options = {}) {
       ...headers
     }
   });
-  const result = await response.json().catch(() => ({}));
+  const rawResponse = await response.text();
+  let result = {};
+  try { result = rawResponse ? JSON.parse(rawResponse) : {}; } catch {}
   if (!response.ok) {
     // A stale token is commonly left behind when the user switches accounts in
     // another tab. Remove it so the user can sign in again rather than retry
@@ -28,7 +30,7 @@ async function apiRequest(path, options = {}) {
       localStorage.removeItem("hiretrack_role");
       localStorage.removeItem("hiretrack_name");
     }
-    throw new Error(result.message || "The server could not complete this request");
+    throw new Error(result.message || `Request failed (${response.status}) at ${path}. Check Vercel Runtime Logs for the server-side error.`);
   }
   return result;
 }
