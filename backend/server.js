@@ -163,8 +163,22 @@ async function optionalAuthenticate(req, _res, next) {
 
 function requireRole(role) {
   return (req, res, next) => {
-    if (req.user?.role !== role) {
-      return res.status(403).json({ success: false, message: "You do not have access to this workspace" });
+    // Normalize historical role values before authorization checks. Older local
+    // databases may contain "job_seeker" or differently-cased role strings.
+    const currentRole = String(req.user?.role || "").trim().toLowerCase();
+    const normalizedRole = currentRole === "job_seeker" ? "jobseeker" : currentRole;
+    if (req.user && normalizedRole !== currentRole && normalizedRole === "jobseeker") {
+      req.user.role = normalizedRole;
+      req.user.save().catch(error => console.error("Role normalization error:", error.message));
+    }
+    if (normalizedRole !== role) {
+      return res.status(403).json({
+        success: false,
+        code: "ROLE_FORBIDDEN",
+        message: "You do not have access to this workspace",
+        expectedRole: role,
+        currentRole: normalizedRole || null
+      });
     }
     next();
   };
