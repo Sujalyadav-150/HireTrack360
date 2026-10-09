@@ -10,6 +10,8 @@ async function apiRequest(path, options = {}) {
   if (!(options.body instanceof FormData)) headers["Content-Type"] = headers["Content-Type"] || "application/json";
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
+    // Keep the HTTP-only session cookie available after refresh and use it as
+    // the primary production auth mechanism; bearer token remains for older clients.
     credentials: "same-origin",
     headers: {
       ...(token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {}),
