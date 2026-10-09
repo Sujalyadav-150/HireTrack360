@@ -8,13 +8,14 @@
     window.location.href = "login.html";
     return;
   }
-  if (authenticatedUser.role === "recruiter") {
-    window.location.href = "recruiter-dashboard.html";
-    return;
-  }
   if (authenticatedUser.role !== "jobseeker") {
-    localStorage.removeItem("hiretrack_token");
-    window.location.href = "login.html";
+    // Never silently switch an authenticated user into the other workspace.
+    // Keep the current session intact and ask them to sign in with the right role.
+    document.body.innerHTML = '<main style="max-width:640px;margin:10vh auto;padding:24px;font:16px system-ui"><h1>Job seeker account required</h1><p>You are signed in with a recruiter account. Sign out and choose Job Seeker to open this dashboard.</p><button id="switchAccount" type="button">Go to sign in</button></main>';
+    document.getElementById("switchAccount").addEventListener("click", () => {
+      ["hiretrack_token","hiretrack_role","hiretrack_name","hiretrack_demo_user"].forEach(key => localStorage.removeItem(key));
+      window.location.href = "login.html?role=jobseeker";
+    });
     return;
   }
 
