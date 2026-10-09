@@ -71,17 +71,17 @@ const SKILL_ALIASES = {
   "Microsoft Word": ["microsoft word", "ms word"]
 };
 
-const SKILL_SECTION = /^(?:technical\\s+skills?|skills(?:\\s+and\\s+(?:competencies|technologies))?|core\\s+competencies|competencies|technologies|tools\\s+and\\s+technologies|technical\\s+expertise|key\\s+skills)\\s*:?$/i;
-const OTHER_SECTION = /^(?:professional\\s+summary|summary|objective|experience|work\\s+experience|professional\\s+experience|employment\\s+history|education|projects?|certifications?|achievements?|interests|languages|publications|references|internships?|personal\\s+details)\\s*:?$/i;
+const SKILL_SECTION = /^(?:technical\s+skills?|skills(?:\s+and\s+(?:competencies|technologies))?|core\s+competencies|competencies|technologies|tools\s+and\s+technologies|technical\s+expertise|key\s+skills)\s*:?$/i;
+const OTHER_SECTION = /^(?:professional\s+summary|summary|objective|experience|work\s+experience|professional\s+experience|employment\s+history|education|projects?|certifications?|achievements?|interests|languages|publications|references|internships?|personal\s+details)\s*:?$/i;
 
 function normalizeForMatching(value) {
   return String(value || "")
     .normalize("NFKC")
     .toLowerCase()
     .replace(/[’‘]/g, "'")
-    .replace(/\\u00a0/g, " ")
+    .replace(/\u00a0/g, " ")
     .replace(/[^a-z0-9+#/.]+/g, " ")
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -91,8 +91,8 @@ function aliasMatches(text, alias) {
   if (!normalizedAlias) return false;
   // Whitespace boundaries prevent "java" matching "javascript", while allowing
   // common punctuation differences such as "Node.js" and "Node JS".
-  const escaped = normalizedAlias.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&").replace(/\\s+/g, "\\\\s+");
-  return new RegExp(`(?:^|\\\\s)${escaped}(?:$|\\\\s)`, "i").test(normalizedText);
+  const escaped = normalizedAlias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  return new RegExp(`(?:^|\\s)${escaped}(?:$|\\s)`, "i").test(normalizedText);
 }
 
 function findSkillsInText(text) {
@@ -105,9 +105,9 @@ function findSkillsInText(text) {
 
 function extractKnownSkills(text) {
   const lines = String(text || "")
-    .replace(/\\u00a0/g, " ")
-    .replace(/\\r/g, "\\n")
-    .split(/\\n+/)
+    .replace(/\u00a0/g, " ")
+    .replace(/\r/g, "\n")
+    .split(/\n+/)
     .map(line => line.replace(/[•▪◦]/g, " ").trim())
     .filter(Boolean);
 
@@ -116,7 +116,7 @@ function extractKnownSkills(text) {
   for (const line of lines) {
     // Handles both standalone headings ("Technical Skills") and headings followed
     // by content on the same line ("Technical Skills: Python, SQL, Power BI").
-    const headingMatch = line.match(/^((?:technical\\s+skills?|skills(?:\\s+and\\s+(?:competencies|technologies))?|core\\s+competencies|competencies|technologies|tools\\s+and\\s+technologies|technical\\s+expertise|key\\s+skills))\\s*:?\\s*(.*)$/i);
+    const headingMatch = line.match(/^((?:technical\s+skills?|skills(?:\s+and\s+(?:competencies|technologies))?|core\s+competencies|competencies|technologies|tools\s+and\s+technologies|technical\s+expertise|key\s+skills))\s*:?\s*(.*)$/i);
     const heading = line.replace(/[•*#:_-]+$/g, "").trim();
     if (headingMatch) {
       inSkillsSection = true;
