@@ -294,6 +294,40 @@ function renderOverviewData() {
     ? `<div class="company-logo">${escapeHtml(String(featured.company || "HT").slice(0, 2).toUpperCase())}</div><div class="job-title"><h4>${escapeHtml(featured.title)}</h4><p>${escapeHtml(featured.company)} · ${escapeHtml(featured.location)}</p><div class="chips"><span>${escapeHtml(featured.type)}</span><span>${escapeHtml(featured.pay)}</span></div><div class="inline-actions"><button class="btn btn-dark" data-action="save-job" data-job-id="${escapeHtml(featured.id)}">${savedJobIds.includes(featured.id) ? "Saved" : "Save job"}</button><button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(featured.id)}">Apply</button></div></div><div class="big-match"><b>${featuredMatchLabel}</b><small>match</small></div>`
     : `<div class="home-empty">No recommended jobs yet. Check back after recruiters publish vacancies.</div>`;
 
+  // Derive the skill section from the same real match object used for the
+  // featured job. Never display static demo percentages as candidate scores.
+  const skillPanel = document.getElementById("featuredSkillMatch");
+  const gapPanel = document.getElementById("featuredSkillGap");
+  if (skillPanel) {
+    const match = featured?.match || {};
+    const components = match.components || match.matchComponents || {};
+    const skillsScore = normalizeMatchScore(components.skills);
+    const matchedSkills = Array.isArray(match.matchedSkills) ? match.matchedSkills : (Array.isArray(featured?.matchedSkills) ? featured.matchedSkills : []);
+    const missingSkills = Array.isArray(match.missingSkills) ? match.missingSkills : (Array.isArray(featured?.missingSkills) ? featured.missingSkills : []);
+    if (!featured) {
+      skillPanel.innerHTML = '<p class="home-empty">Skill matching will appear when open jobs are available.</p>';
+    } else if (skillsScore === null) {
+      skillPanel.innerHTML = '<p class="home-empty">This job has no required skills to calculate a skill-match percentage.</p>';
+    } else {
+      const safeScore = Math.round(Math.max(0, Math.min(100, skillsScore)));
+      const detail = matchedSkills.length || missingSkills.length
+        ? `<p class="skill-match-summary">${matchedSkills.length} matched · ${missingSkills.length} missing from ${matchedSkills.length + missingSkills.length} listed required skills</p>`
+        : '<p class="skill-match-summary">Based on the job requirements and skills saved in your profile.</p>';
+      skillPanel.innerHTML = `<div class="skill-match-row"><span>Required skills match</span><i><b style="width:${safeScore}%"></b></i><strong>${safeScore}%</strong></div>${detail}`;
+    }
+  }
+  if (gapPanel) {
+    const match = featured?.match || {};
+    const missingSkills = Array.isArray(match.missingSkills) ? match.missingSkills : (Array.isArray(featured?.missingSkills) ? featured.missingSkills : []);
+    if (featured && missingSkills.length) {
+      gapPanel.hidden = false;
+      gapPanel.querySelector("b").textContent = `${missingSkills.length} skill gap${missingSkills.length === 1 ? "" : "s"} detected`;
+      gapPanel.querySelector("small").textContent = `Missing required skills: ${missingSkills.slice(0, 4).join(", ")}${missingSkills.length > 4 ? "…" : ""}`;
+    } else {
+      gapPanel.hidden = true;
+    }
+  }
+
   const statusPanel = document.getElementById("applicationStatusPanel");
   statusPanel.innerHTML = `<div class="panel-head"><div><span class="section-kicker">APPLICATION STATUS</span><h3>Recent applications</h3></div><a href="#applications" data-view-link="applications">All applications →</a></div>${applications.length ? applications.slice(0, 4).map(application => `<div class="health-item"><div class="health-dot"></div><div><b>${escapeHtml(application.title)} · ${escapeHtml(application.company)}</b><small>${escapeHtml(application.updated)}</small></div><span>${escapeHtml(application.status)}</span></div>`).join("") : `<div class="home-empty">Your submitted applications and their status will appear here.</div>`}`;
 
