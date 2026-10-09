@@ -37,7 +37,7 @@ window.apiRequest = apiRequest;
 
 window.downloadProtectedFile = async function downloadProtectedFile(path, fileName) {
   const token = localStorage.getItem("hiretrack_token");
-  const url = path.startsWith("/api/") ? `${API_BASE}${path}` : `${API_BASE}${path}`;
+  const url = path.startsWith("/api/") ? path : `${API_BASE}${path}`;
   const response = await fetch(url, { credentials: "same-origin", headers: token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {} });
   if (!response.ok) {
     const result = await response.json().catch(() => ({}));
@@ -58,7 +58,7 @@ window.viewProtectedFile = async function viewProtectedFile(path) {
   if (!previewWindow) throw new Error("Allow pop-ups to preview the resume");
   previewWindow.document.title = "Loading resume…";
   const token = localStorage.getItem("hiretrack_token");
-  const url = path.startsWith("/api/") ? `${API_BASE}${path}` : `${API_BASE}${path}`;
+  const url = path.startsWith("/api/") ? path : `${API_BASE}${path}`;
   try {
     const response = await fetch(url, { credentials: "same-origin", headers: token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {} });
     if (!response.ok) {
