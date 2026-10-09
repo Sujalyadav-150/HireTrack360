@@ -71,7 +71,7 @@ const resumeUpload = multer({
     destination: (_req, _file, callback) => callback(null, uploadDirectory),
     filename: (_req, file, callback) => callback(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`)
   }),
-  limits: { fileSize: 4 * 1024 * 1024, files: 1 },
+  limits: { fileSize: 3 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, callback) => {
     const extension = path.extname(file.originalname).toLowerCase();
     if ([".pdf", ".doc", ".docx"].includes(extension)) return callback(null, true);
@@ -1094,7 +1094,7 @@ app.use((error, _req, res, _next) => {
   if (res.headersSent) return;
   if (error instanceof multer.MulterError) {
     const message = error.code === "LIMIT_FILE_SIZE"
-      ? "Resume file must be 4 MB or smaller on the hosted site."
+      ? "Resume file must be 3 MB or smaller on the hosted site."
       : "Resume upload failed. Please upload one PDF, DOC, or DOCX file.";
     return res.status(400).json({ success: false, message });
   }
