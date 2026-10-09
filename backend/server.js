@@ -64,7 +64,7 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth", authLimiter);
 
-const uploadDirectory = path.join(__dirname, "uploads");
+const uploadDirectory = process.env.UPLOAD_DIR || (process.env.VERCEL ? path.join("/tmp", "hiretrack360-uploads") : path.join(__dirname, "uploads"));
 fs.mkdirSync(uploadDirectory, { recursive: true });
 const resumeUpload = multer({
   storage: multer.diskStorage({
