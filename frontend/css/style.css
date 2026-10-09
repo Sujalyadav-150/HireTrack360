@@ -64,3 +64,10 @@ a{text-decoration:none;color:inherit}button,input{font:inherit}.btn{display:inli
 .skill-chip{display:inline-flex;align-items:center;max-width:100%;white-space:normal;overflow-wrap:anywhere;background:#ffffff08;border:1px solid var(--line);border-radius:9px;padding:7px 10px;color:#b8c8dc;font-size:12px;line-height:1.45}
 .empty-inline{color:var(--muted);font-size:13px;line-height:1.6}
 button:disabled{opacity:.6;cursor:wait}
+
+
+/* Career-gap skill chips wrap naturally and remain readable on narrow screens. */
+.skill-chip-list{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin-top:14px;max-width:100%}
+.skill-chip{display:inline-flex;align-items:center;max-width:100%;white-space:normal;overflow-wrap:anywhere;background:#ffffff08;border:1px solid var(--line);border-radius:9px;padding:7px 10px;color:#b8c8dc;font-size:12px;line-height:1.45}
+.empty-inline{color:var(--muted);font-size:13px;line-height:1.6}
+button:disabled{opacity:.6;cursor:wait}
