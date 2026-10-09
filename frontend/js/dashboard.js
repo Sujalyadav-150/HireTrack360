@@ -133,8 +133,7 @@ function renderSavedJobs() {
 }
 
 function renderCareerGaps() {
-  // Show only real skill gaps from open jobs, with normalized de-duplication.
-  // Scoring output is already computed by the backend for each open job.
+  // Display only actual missing skills returned by the backend for open jobs.
   const skillMap = new Map();
   for (const job of jobs) {
     for (const item of Array.isArray(job.missingSkills) ? job.missingSkills : []) {
@@ -149,7 +148,7 @@ function renderCareerGaps() {
   return `<article class="view-card skill-gap-card">
       <span class="section-kicker">SKILL GAPS FROM OPEN JOBS</span>
       <h3>${missing.length ? "Skills to consider building" : "No skill gaps detected"}</h3>
-      <p>These skills are required by currently open jobs but were not found in your saved profile skills. Add accurate skills to your profile to improve matching.</p>
+      <p>These are skills required by currently open jobs that are not in your saved profile skills. Update your profile with accurate skills to improve job matching.</p>
       ${missing.length ? `<div class="skill-chip-list">${missing.map(skill => `<span class="skill-chip">${escapeHtml(skill)}</span>`).join("")}</div>` : `<p class="empty-inline">No missing skills were returned for the current open jobs.</p>`}
     </article>
     <article class="view-card">
@@ -386,13 +385,12 @@ async function handleAction(button) {
     }
   } else if (action === "remove-saved") {
     if (!jobId) {
-      showToast("Could not identify the saved job. Refresh the page and try again.");
+      showToast("Could not identify the saved job. Refresh and try again.");
       return;
     }
     button.disabled = true;
     try {
-      // The save endpoint toggles the saved state. Remove only when the job is
-      // currently saved, then confirm from the dashboard response.
+      // This API toggles saved state; avoid toggling a job back on accidentally.
       if (!savedJobIds.map(String).includes(String(jobId))) {
         await refreshCandidateData();
         renderView();
@@ -401,9 +399,11 @@ async function handleAction(button) {
       }
       const result = await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/save`, { method: "POST" });
       await refreshCandidateData();
+      const stillSaved = savedJobIds.map(String).includes(String(jobId));
       renderView();
-      showToast(result.saved === false || !savedJobIds.map(String).includes(String(jobId))
+      showToast(!stillSaved && result.saved === false
         ? "Job removed from saved jobs"
+        : !stillSaved ? "Job removed from saved jobs"
         : "The job is still saved. Please retry.");
     } catch (error) {
       showToast(error.message);
