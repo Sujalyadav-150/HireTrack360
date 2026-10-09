@@ -369,16 +369,32 @@
     if (view === "analytics") analytics = await request("/analytics/recruiter");
     render();
   });
+  let session;
   try {
-    const session = await request("/auth/me");
-    if (session.user.role === "jobseeker") {
-      location.href = "dashboard.html";
-      return;
-    }
-    if (session.user.role !== "recruiter") throw new Error("This account does not have recruiter access");
-    await loadDashboard();
-  } catch {
+    session = await request("/auth/me");
+  } catch (error) {
+    // Only redirect when the session check itself fails. Dashboard data/API
+    // failures must not erase a valid session or bounce a recruiter to login.
     localStorage.removeItem("hiretrack_token");
+    localStorage.removeItem("hiretrack_role");
+    localStorage.removeItem("hiretrack_name");
     location.href = "login.html";
+    return;
+  }
+
+  if (session.user.role === "jobseeker") {
+    location.href = "dashboard.html";
+    return;
+  }
+  if (session.user.role !== "recruiter") {
+    overviewView.innerHTML = '<div class="view-card empty-state"><h3>Recruiter access required</h3><p>This account does not have recruiter access. Please sign in with a recruiter account.</p></div>';
+    return;
+  }
+
+  try {
+    await loadDashboard();
+  } catch (error) {
+    console.error("Recruiter dashboard failed to load:", error);
+    overviewView.innerHTML = `<div class="view-card empty-state"><h3>Dashboard could not load</h3><p>${escapeHtml(error.message || "The server could not load recruiter data.")}</p><p>Your login session is still active. Refresh this page in a moment, or check the API/server logs.</p><button class="btn btn-primary" type="button" onclick="location.reload()">Retry</button></div>`;
   }
 })();
