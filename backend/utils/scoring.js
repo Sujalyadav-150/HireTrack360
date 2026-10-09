@@ -2,10 +2,15 @@ const skillAliases = new Map([
   ["js", "javascript"],
   ["nodejs", "node.js"],
   ["node js", "node.js"],
+  ["node", "node.js"],
   ["reactjs", "react"],
+  ["react.js", "react"],
+  ["react js", "react"],
   ["postgres", "postgresql"],
   ["powerbi", "power bi"],
-  ["ms excel", "excel"]
+  ["ms excel", "excel"],
+  ["communication", "communication skills"],
+  ["problem solving", "problem-solving"]
 ]);
 
 const matchWeights = { skills: 55, title: 15, experience: 10, education: 10, location: 6, employmentType: 4 };
@@ -37,6 +42,11 @@ function normalizeSkill(skill) {
   return skillAliases.get(normalized) || normalized;
 }
 
+function expandSkills(value) {
+  const values = Array.isArray(value) ? value : value == null ? [] : [value];
+  return values.flatMap(item => String(item || "").split(/[|,;\\n]+/).map(skill => skill.trim()).filter(Boolean));
+}
+
 function tokenSet(value) {
   return new Set(normalizeSkill(value).split(/[^a-z0-9+#.]+/).filter(token => token.length > 1));
 }
@@ -59,8 +69,8 @@ function yearsIn(value) {
 function calculateMatch(candidate = {}, job = {}) {
   if (Array.isArray(candidate)) candidate = { skills: candidate };
   if (Array.isArray(job)) job = { requiredSkills: job };
-  const candidateSkills = Array.isArray(candidate.skills) ? candidate.skills : [];
-  const requiredSkills = job.requiredSkills?.length ? job.requiredSkills : job.skills || [];
+  const candidateSkills = expandSkills(candidate.skills);
+  const requiredSkills = expandSkills(job.requiredSkills?.length ? job.requiredSkills : job.skills || []);
   const candidateSet = new Set(candidateSkills.map(normalizeSkill).filter(Boolean));
   const requirements = [...new Map(requiredSkills.map(skill => [normalizeSkill(skill), String(skill).trim()])).values()];
   const matchedSkills = requirements.filter(skill => candidateSet.has(normalizeSkill(skill)));
