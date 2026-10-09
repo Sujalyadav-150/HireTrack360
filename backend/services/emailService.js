@@ -6,7 +6,8 @@ let initializationAttempted = false;
 function getTransporter() {
   if (initializationAttempted) return transporter;
   initializationAttempted = true;
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+  const smtpPassword = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !smtpPassword) {
     console.warn("Email service unconfigured; outbound emails are disabled");
     return null;
   }
@@ -14,7 +15,7 @@ function getTransporter() {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),
     secure: Number(process.env.SMTP_PORT) === 465,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
+    auth: { user: process.env.SMTP_USER, pass: smtpPassword }
   });
   return transporter;
 }
@@ -32,7 +33,7 @@ async function sendEmail({ to, subject, text, html }) {
 }
 
 async function sendPasswordReset(user, token, baseUrl) {
-  const resetBaseUrl = baseUrl || process.env.FRONTEND_URL || process.env.APP_URL || "http://localhost:8000";
+  const resetBaseUrl = (process.env.FRONTEND_URL || process.env.APP_URL || baseUrl || "http://localhost:8000").trim().replace(/\\/+$/, "");
   const resetUrl = new URL("/reset-password.html", resetBaseUrl);
   resetUrl.searchParams.set("token", token);
   return sendEmail({
