@@ -3,57 +3,137 @@ const path = require("path");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 
-const KNOWN_SKILLS = [
-  "JavaScript", "TypeScript", "Node.js", "Express.js", "React", "Angular", "Vue.js",
-  "HTML", "CSS", "Python", "Java", "C", "C++", "C#", "PHP", "SQL", "MySQL",
-  "PostgreSQL", "MongoDB", "Mongoose", "REST API", "GraphQL", "Git", "GitHub",
-  "Docker", "Kubernetes", "AWS", "Azure", "Google Cloud", "Linux", "Power BI",
-  "Tableau", "Microsoft Excel", "Excel", "Pandas", "NumPy", "scikit-learn",
-  "Machine Learning", "Data Analysis", "Data Visualization", "Statistics",
-  "Communication", "Project Management", "Agile", "Scrum", "Jira", "Figma",
-  "Spring Boot", "Django", "Flask", "Redis", "Firebase", "CI/CD", "Jenkins",
-  "Terraform", "Cybersecurity", "Wireshark", "Nmap", "Data Structures",
-  "Algorithms", "OOP", "Problem Solving", "PowerPoint", "Microsoft Word"
-];
+// Canonical names shown in the profile. Aliases cover common resume spellings.
+const SKILL_ALIASES = {
+  "JavaScript": ["javascript", "java script", "js"],
+  "TypeScript": ["typescript", "type script", "ts"],
+  "Node.js": ["node.js", "node js", "nodejs"],
+  "Express.js": ["express.js", "express js", "express"],
+  "React": ["react", "react.js", "react js"],
+  "Angular": ["angular", "angular.js"],
+  "Vue.js": ["vue.js", "vue js", "vue"],
+  "HTML": ["html", "html5"],
+  "CSS": ["css", "css3"],
+  "Python": ["python", "python3"],
+  "Java": ["java"],
+  "C": ["c language"],
+  "C++": ["c++", "cpp"],
+  "C#": ["c#", "c sharp"],
+  "PHP": ["php"],
+  "SQL": ["sql", "structured query language"],
+  "MySQL": ["mysql", "my sql"],
+  "PostgreSQL": ["postgresql", "postgres", "postgre sql"],
+  "MongoDB": ["mongodb", "mongo db"],
+  "Mongoose": ["mongoose"],
+  "REST API": ["rest api", "rest apis", "restful api", "restful apis"],
+  "GraphQL": ["graphql", "graph ql"],
+  "Git": ["git"],
+  "GitHub": ["github", "git hub"],
+  "Docker": ["docker"],
+  "Kubernetes": ["kubernetes", "k8s"],
+  "AWS": ["aws", "amazon web services"],
+  "Azure": ["azure", "microsoft azure"],
+  "Google Cloud": ["google cloud", "gcp"],
+  "Linux": ["linux"],
+  "Power BI": ["power bi", "powerbi"],
+  "Tableau": ["tableau"],
+  "Microsoft Excel": ["microsoft excel", "ms excel", "advanced excel"],
+  "Excel": ["excel", "spreadsheet"],
+  "Pandas": ["pandas"],
+  "NumPy": ["numpy", "num py"],
+  "scikit-learn": ["scikit-learn", "scikit learn", "sklearn"],
+  "Machine Learning": ["machine learning", "ml"],
+  "Data Analysis": ["data analysis", "data analytics", "data analyst"],
+  "Data Visualization": ["data visualization", "data visualisation"],
+  "Statistics": ["statistics", "statistical analysis"],
+  "Communication": ["communication", "communication skills"],
+  "Project Management": ["project management"],
+  "Agile": ["agile"],
+  "Scrum": ["scrum"],
+  "Jira": ["jira"],
+  "Figma": ["figma"],
+  "Spring Boot": ["spring boot"],
+  "Django": ["django"],
+  "Flask": ["flask"],
+  "Redis": ["redis"],
+  "Firebase": ["firebase"],
+  "CI/CD": ["ci/cd", "continuous integration", "continuous deployment"],
+  "Jenkins": ["jenkins"],
+  "Terraform": ["terraform"],
+  "Cybersecurity": ["cybersecurity", "cyber security", "information security"],
+  "Wireshark": ["wireshark"],
+  "Nmap": ["nmap"],
+  "Data Structures": ["data structures", "data structure"],
+  "Algorithms": ["algorithms", "algorithm"],
+  "OOP": ["oop", "object oriented programming", "object-oriented programming"],
+  "Problem Solving": ["problem solving", "problem-solving"],
+  "PowerPoint": ["powerpoint", "power point", "ms powerpoint"],
+  "Microsoft Word": ["microsoft word", "ms word"]
+};
 
-const SKILL_SECTION = /^(?:technical\s+skills?|skills(?:\s+and\s+(?:competencies|technologies))?|core\s+competencies|competencies|technologies|tools\s+and\s+technologies|technical\s+expertise|key\s+skills)\s*:?$/i;
-const OTHER_SECTION = /^(?:professional\s+summary|summary|objective|experience|work\s+experience|professional\s+experience|employment\s+history|education|projects?|certifications?|achievements?|interests|languages|publications|references)\s*:?$/i;
+const SKILL_SECTION = /^(?:technical\\s+skills?|skills(?:\\s+and\\s+(?:competencies|technologies))?|core\\s+competencies|competencies|technologies|tools\\s+and\\s+technologies|technical\\s+expertise|key\\s+skills)\\s*:?$/i;
+const OTHER_SECTION = /^(?:professional\\s+summary|summary|objective|experience|work\\s+experience|professional\\s+experience|employment\\s+history|education|projects?|certifications?|achievements?|interests|languages|publications|references|internships?|personal\\s+details)\\s*:?$/i;
 
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+function normalizeForMatching(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/\\u00a0/g, " ")
+    .replace(/[^a-z0-9+#/.]+/g, " ")
+    .replace(/\\s+/g, " ")
+    .trim();
+}
+
+function aliasMatches(text, alias) {
+  const normalizedText = ` ${normalizeForMatching(text)} `;
+  const normalizedAlias = normalizeForMatching(alias);
+  if (!normalizedAlias) return false;
+  // Whitespace boundaries prevent "java" matching "javascript", while allowing
+  // common punctuation differences such as "Node.js" and "Node JS".
+  const escaped = normalizedAlias.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&").replace(/\\s+/g, "\\\\s+");
+  return new RegExp(`(?:^|\\\\s)${escaped}(?:$|\\\\s)`, "i").test(normalizedText);
 }
 
 function findSkillsInText(text) {
-  const normalized = String(text || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").toLowerCase();
   const found = [];
-  for (const skill of KNOWN_SKILLS) {
-    const escaped = escapeRegex(skill.toLowerCase());
-    const pattern = new RegExp(`(^|[^a-z0-9+#.])${escaped}($|[^a-z0-9+#.])`, "i");
-    if (pattern.test(normalized) && !found.some(item => item.toLowerCase() === skill.toLowerCase())) found.push(skill);
+  for (const [canonical, aliases] of Object.entries(SKILL_ALIASES)) {
+    if (aliases.some(alias => aliasMatches(text, alias))) found.push(canonical);
   }
   return found;
 }
 
 function extractKnownSkills(text) {
-  const lines = String(text || "").replace(/\u00a0/g, " ").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  const sections = [];
-  let activeSection = "";
+  const lines = String(text || "")
+    .replace(/\\u00a0/g, " ")
+    .replace(/\\r/g, "\\n")
+    .split(/\\n+/)
+    .map(line => line.replace(/[•▪◦]/g, " ").trim())
+    .filter(Boolean);
+
+  const skillLines = [];
+  let inSkillsSection = false;
   for (const line of lines) {
+    // Handles both standalone headings ("Technical Skills") and headings followed
+    // by content on the same line ("Technical Skills: Python, SQL, Power BI").
+    const headingMatch = line.match(/^((?:technical\\s+skills?|skills(?:\\s+and\\s+(?:competencies|technologies))?|core\\s+competencies|competencies|technologies|tools\\s+and\\s+technologies|technical\\s+expertise|key\\s+skills))\\s*:?\\s*(.*)$/i);
     const heading = line.replace(/[•*#:_-]+$/g, "").trim();
-    if (SKILL_SECTION.test(heading)) {
-      activeSection = "skills";
+    if (headingMatch) {
+      inSkillsSection = true;
+      if (headingMatch[2].trim()) skillLines.push(headingMatch[2].trim());
       continue;
     }
     if (OTHER_SECTION.test(heading)) {
-      activeSection = "";
+      inSkillsSection = false;
       continue;
     }
-    if (activeSection === "skills") sections.push(line);
+    if (inSkillsSection) skillLines.push(line);
   }
-  const sectionSkills = findSkillsInText(sections.join(" "));
-  // Prefer a dedicated skills section to avoid treating every technology mentioned
-  // in project descriptions as a verified skill. Fall back for resumes without headings.
-  return sectionSkills.length ? sectionSkills : findSkillsInText(text);
+
+  const sectionSkills = findSkillsInText(skillLines.join(" "));
+  // Some resumes do not label a skills section, so scan the full extracted text as
+  // a fallback. Only known aliases are returned; this is not an AI inference.
+  return sectionSkills.length ? sectionSkills : findSkillsInText(lines.join(" "));
 }
 
 async function extractResumeSkills(filePath, originalName = "") {
@@ -68,19 +148,37 @@ async function extractResumeSkills(filePath, originalName = "") {
       const parsed = await mammoth.extractRawText({ path: filePath });
       text = parsed.value || "";
     } else {
-      return { skills: [], status: "unsupported", message: "Automatic skill extraction supports text-based PDF and DOCX files. This DOC file was saved, but its skills could not be extracted." };
+      return {
+        skills: [],
+        status: "unsupported",
+        message: "Automatic extraction supports text-based PDF and DOCX files. Legacy .DOC files are saved, but their skills are not extracted automatically. Save this file as PDF or DOCX and upload again."
+      };
     }
-    if (!text.trim()) return { skills: [], status: "partial", message: "No readable text found. If this is a scanned/image PDF, use a text-based PDF or DOCX." };
+
+    if (!text.trim()) {
+      return {
+        skills: [],
+        status: "partial",
+        message: "The file contains no selectable text. If it is a scanned/image PDF, OCR is needed; try exporting it as a text-based PDF or DOCX."
+      };
+    }
+
     const skills = extractKnownSkills(text);
     return {
       skills,
       status: skills.length ? "complete" : "partial",
-      message: skills.length ? `Extracted ${skills.length} skills from resume text.` : "Resume text was read, but no skills from the supported skill list were detected."
+      message: skills.length
+        ? `Extracted ${skills.length} supported skills from resume text.`
+        : "Resume text was readable, but no supported skill names or aliases were found. Check the Skills section or add more skill aliases to the parser."
     };
   } catch (error) {
     console.error("Resume skill extraction error:", error.message);
-    return { skills: [], status: "failed", message: "Resume uploaded, but automatic skill extraction failed. You can still view or download the file." };
+    return {
+      skills: [],
+      status: "failed",
+      message: "Resume uploaded, but text extraction failed. Try a text-based PDF or DOCX file and check the backend terminal for the extraction error."
+    };
   }
 }
 
-module.exports = { extractResumeSkills, extractKnownSkills };
+module.exports = { extractResumeSkills, extractKnownSkills, findSkillsInText };
