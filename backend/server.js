@@ -21,7 +21,7 @@ const Interview = require("./models/Interview");
 const Notification = require("./models/Notification");
 const PushSubscription = require("./models/PushSubscription");
 const ActivityLog = require("./models/ActivityLog");
-const { calculateMatch, calculateTrust, calculateJobRisk } = require("./utils/scoring");
+const { calculateMatch, calculateTrust, calculateJobRisk, normalizeUserRole } = require("./utils/scoring");
 const { sendPasswordReset, sendInterviewEmail, sendApplicationStatusEmail } = require("./services/emailService");
 const { createNotification, pushConfigured } = require("./services/notificationService");
 
@@ -111,6 +111,10 @@ function createToken(user) {
   return jwt.sign({ sub: user._id.toString(), ver: user.tokenVersion || 0 }, jwtSecret, { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
 }
 
+function normalizeRoleValue(value) {
+  return normalizeUserRole(value);
+}
+
 function sendAuthSuccess(res, user, status = 200) {
   const token = createToken(user);
   res.cookie("hiretrack_session", token, {
@@ -135,8 +139,10 @@ async function authenticate(req, res, next) {
     if (!user.isActive || (payload.ver || 0) !== (user.tokenVersion || 0)) {
       return res.status(401).json({ success: false, message: "Your session is invalid or expired" });
     }
-    if (user.role === "job_seeker") {
-      user.role = "jobseeker";
+
+    const normalizedRole = normalizeRoleValue(user.role);
+    if (normalizedRole && normalizedRole !== user.role) {
+      user.role = normalizedRole;
       await user.save();
     }
     if (!allowedRoles.includes(user.role)) {
@@ -162,22 +168,20 @@ async function optionalAuthenticate(req, _res, next) {
 }
 
 function requireRole(role) {
+  const requiredRole = normalizeRoleValue(role);
   return (req, res, next) => {
-    // Normalize historical role values before authorization checks. Older local
-    // databases may contain "job_seeker" or differently-cased role strings.
-    const currentRole = String(req.user?.role || "").trim().toLowerCase();
-    const normalizedRole = currentRole === "job_seeker" ? "jobseeker" : currentRole;
-    if (req.user && normalizedRole !== currentRole && normalizedRole === "jobseeker") {
-      req.user.role = normalizedRole;
+    const currentRole = normalizeRoleValue(req.user?.role);
+    if (req.user && currentRole && currentRole !== req.user.role) {
+      req.user.role = currentRole;
       req.user.save().catch(error => console.error("Role normalization error:", error.message));
     }
-    if (normalizedRole !== role) {
+    if (currentRole !== requiredRole) {
       return res.status(403).json({
         success: false,
         code: "ROLE_FORBIDDEN",
         message: "You do not have access to this workspace",
-        expectedRole: role,
-        currentRole: normalizedRole || null
+        expectedRole: requiredRole,
+        currentRole: currentRole || null
       });
     }
     next();
@@ -202,10 +206,11 @@ app.post("/api/auth/register", async (req, res) => {
     if (password.length < 8) {
       return res.status(400).json({ success: false, message: "Password must be at least 8 characters" });
     }
-    if (!allowedRoles.includes(role)) {
+    const normalizedRole = normalizeRoleValue(role);
+    if (!allowedRoles.includes(normalizedRole)) {
       return res.status(400).json({ success: false, message: "Choose jobseeker or recruiter" });
     }
-    if (role === "recruiter" && !companyName?.trim()) {
+    if (normalizedRole === "recruiter" && !companyName?.trim()) {
       return res.status(400).json({ success: false, message: "Company name is required for recruiter accounts" });
     }
 
@@ -217,28 +222,28 @@ app.post("/api/auth/register", async (req, res) => {
       name: name.trim(),
       email: normalizedEmail,
       password: await bcrypt.hash(password, 12),
-      role,
+      role: normalizedRole,
       authProvider: "local",
-      skills: role === "jobseeker" && typeof skills === "string"
+      skills: normalizedRole === "jobseeker" && typeof skills === "string"
         ? skills.split(",").map(skill => skill.trim()).filter(Boolean)
         : [],
-      targetRole: role === "jobseeker" ? req.body.targetRole?.trim() : undefined,
-      preferredTitles: role === "jobseeker" ? (Array.isArray(req.body.preferredTitles) ? req.body.preferredTitles : []).map(String).map(value => value.trim()).filter(Boolean) : [],
-      preferredLocations: role === "jobseeker" ? (Array.isArray(req.body.preferredLocations) ? req.body.preferredLocations : String(req.body.preferredLocations || "").split(",")).map(String).map(value => value.trim()).filter(Boolean) : [],
-      preferredJobTypes: role === "jobseeker" ? (Array.isArray(req.body.preferredJobTypes) ? req.body.preferredJobTypes : String(req.body.preferredJobTypes || "").split(",")).map(String).map(value => value.trim()).filter(Boolean) : [],
+      targetRole: normalizedRole === "jobseeker" ? req.body.targetRole?.trim() : undefined,
+      preferredTitles: normalizedRole === "jobseeker" ? (Array.isArray(req.body.preferredTitles) ? req.body.preferredTitles : []).map(String).map(value => value.trim()).filter(Boolean) : [],
+      preferredLocations: normalizedRole === "jobseeker" ? (Array.isArray(req.body.preferredLocations) ? req.body.preferredLocations : String(req.body.preferredLocations || "").split(",")).map(String).map(value => value.trim()).filter(Boolean) : [],
+      preferredJobTypes: normalizedRole === "jobseeker" ? (Array.isArray(req.body.preferredJobTypes) ? req.body.preferredJobTypes : String(req.body.preferredJobTypes || "").split(",")).map(String).map(value => value.trim()).filter(Boolean) : [],
       remotePreference: ["ANY", "REMOTE", "ONSITE"].includes(req.body.remotePreference) ? req.body.remotePreference : "ANY",
       phone: req.body.phone?.trim(),
-      location: role === "jobseeker" ? req.body.location?.trim() : undefined,
-      experience: role === "jobseeker" ? req.body.experience?.trim() : undefined,
-      education: role === "jobseeker" ? req.body.education?.trim() : undefined,
-      bio: role === "jobseeker" ? req.body.bio?.trim() : undefined,
-      companyName: role === "recruiter" ? companyName.trim() : undefined,
-      designation: role === "recruiter" ? req.body.designation?.trim() : undefined,
-      companyWebsite: role === "recruiter" ? req.body.companyWebsite?.trim() : undefined,
-      companyLocation: role === "recruiter" ? req.body.companyLocation?.trim() : undefined,
-      companyDescription: role === "recruiter" ? req.body.companyDescription?.trim() : undefined
+      location: normalizedRole === "jobseeker" ? req.body.location?.trim() : undefined,
+      experience: normalizedRole === "jobseeker" ? req.body.experience?.trim() : undefined,
+      education: normalizedRole === "jobseeker" ? req.body.education?.trim() : undefined,
+      bio: normalizedRole === "jobseeker" ? req.body.bio?.trim() : undefined,
+      companyName: normalizedRole === "recruiter" ? companyName.trim() : undefined,
+      designation: normalizedRole === "recruiter" ? req.body.designation?.trim() : undefined,
+      companyWebsite: normalizedRole === "recruiter" ? req.body.companyWebsite?.trim() : undefined,
+      companyLocation: normalizedRole === "recruiter" ? req.body.companyLocation?.trim() : undefined,
+      companyDescription: normalizedRole === "recruiter" ? req.body.companyDescription?.trim() : undefined
     });
-    await recordActivity(user._id, "USER_REGISTERED", "User", user._id, { role });
+    await recordActivity(user._id, "USER_REGISTERED", "User", user._id, { role: normalizedRole });
     sendAuthSuccess(res, user, 201);
   } catch (error) {
     if (error.code === 11000) {
@@ -260,14 +265,15 @@ app.post("/api/auth/login", async (req, res) => {
     if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ success: false, message: "Email or password is incorrect" });
     }
-    if (user.role === "job_seeker") {
-      user.role = "jobseeker";
+    const normalizedRole = normalizeRoleValue(user.role);
+    if (normalizedRole && normalizedRole !== user.role) {
+      user.role = normalizedRole;
       await user.save();
     }
     if (!allowedRoles.includes(user.role)) {
       return res.status(403).json({ success: false, message: "Account role is not supported" });
     }
-    if (expectedRole && expectedRole !== user.role) {
+    if (expectedRole && normalizeRoleValue(expectedRole) !== user.role) {
       return res.status(403).json({ success: false, message: `Your account is registered as a ${roleName(user.role)}. Please continue as ${roleName(user.role)}.` });
     }
     await recordActivity(user._id, "USER_LOGGED_IN", "User", user._id, { role: user.role });

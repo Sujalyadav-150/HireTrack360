@@ -68,9 +68,29 @@ const viewDetails = {
 };
 
 function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, character => ({
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   })[character]);
+}
+
+function normalizeMatchScore(value) {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "object") {
+    const nestedValue = value.score ?? value.matchScore ?? value.value ?? value.percentage;
+    return normalizeMatchScore(nestedValue);
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const numericValue = Number(value);
+    if (Number.isFinite(numericValue)) return numericValue;
+  }
+  return null;
+}
+
+function formatMatchPercent(value) {
+  const numericValue = normalizeMatchScore(value);
+  if (numericValue === null) return "—";
+  return `${Math.round(Math.max(0, Math.min(100, Number(numericValue))))}%`;
 }
 
 function showToast(message) {
@@ -83,9 +103,10 @@ function showToast(message) {
 
 function jobCard(job, options = {}) {
   const jobId = job._id || job.id;
-  const matchScore = job.matchScore ?? job.match?.score ?? 0;
+  const matchScore = normalizeMatchScore(job.matchScore ?? job.match?.score ?? null);
+  const matchLabel = matchScore === null ? "—" : `${Math.round(Math.max(0, Math.min(100, matchScore)))}%`;
   return `<article class="view-card job-result">
-    <div class="view-card-head"><div><span class="section-kicker">${matchScore}% MATCH</span><h3>${escapeHtml(job.title)}</h3><p>${escapeHtml(job.company)} · ${escapeHtml(job.location)}</p></div><span class="match-pill">${escapeHtml(job.type)}</span></div>
+    <div class="view-card-head"><div><span class="section-kicker">${matchLabel} MATCH</span><h3>${escapeHtml(job.title)}</h3><p>${escapeHtml(job.company)} · ${escapeHtml(job.location)}</p></div><span class="match-pill">${escapeHtml(job.type)}</span></div>
     <div class="chips"><span>${escapeHtml(job.pay)}</span><span>${escapeHtml(job.skills)}</span></div>
     <div class="view-card-actions"><button class="btn btn-ghost" data-action="view-job" data-job-id="${escapeHtml(jobId)}">Details</button>${options.remove ? `<button class="btn btn-ghost" data-action="remove-saved" data-job-id="${escapeHtml(jobId)}">Remove</button>` : `<button class="btn btn-ghost" data-action="save-job" data-job-id="${escapeHtml(jobId)}">${savedJobIds.includes(jobId) ? "Saved" : "Save job"}</button>`}<button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(jobId)}">Apply</button></div>
   </article>`;
@@ -151,13 +172,16 @@ function renderAnalytics() {
 function renderJobDetails() {
   if (!selectedJobDetails) return `<div class="view-card empty-state"><h3>Job details unavailable</h3><button class="btn btn-primary" data-view-link="find-jobs">Back to jobs</button></div>`;
   const { job, safety } = selectedJobDetails;
-  const match = selectedJobMatch || { score: 0, matchedSkills: [], missingSkills: [] };
-  const components = Object.entries(match.components || {}).filter(([, score]) => score !== null);
-  return `<article class="view-card job-detail-card"><div class="view-card-head"><div><span class="section-kicker">${escapeHtml(job.employmentType || "Full-time")} · ${job.remote ? "Remote" : escapeHtml(job.location || "On-site")}</span><h3>${escapeHtml(job.title)}</h3><p>${escapeHtml(job.company)} · ${escapeHtml(job.location || "Location not listed")}</p></div><span class="match-pill">${match.score}% match</span></div><div class="job-detail-facts"><span>Posted ${new Date(job.createdAt).toLocaleDateString()}</span><span>Experience ${escapeHtml(job.experience || "Not specified")}</span><span>Education ${escapeHtml(job.educationRequirements || "Not specified")}</span><span>Salary ${job.salaryMin || job.salaryMax ? `${job.salaryMin || "-"} to ${job.salaryMax || "-"}` : "Not listed"}</span><span>Deadline ${job.deadline ? new Date(job.deadline).toLocaleDateString() : "Not specified"}</span></div><h4>Why this job matches you</h4><p>Weighted match score: ${match.score}%</p><div class="analytics-list">${components.map(([name, score]) => `<div class="analytics-row"><span>${escapeHtml(name)}</span><div><i style="width:${score}%"></i></div><strong>${score}%</strong></div>`).join("")}</div><ul class="match-explanations">${match.explanations.map(reason => `<li>✓ ${escapeHtml(reason)}</li>`).join("")}</ul><div class="skill-breakdown"><div><b>Matched skills</b>${match.matchedSkills.map(skill => `<span>✓ ${escapeHtml(skill)}</span>`).join("") || "No required skills listed"}</div><div><b>Missing skills</b>${match.missingSkills.map(skill => `<span>• ${escapeHtml(skill)}</span>`).join("") || "None"}</div></div><p class="formula-note">Formula: ${escapeHtml(match.formula)}. This is a profile-fit estimate, not a hiring probability.</p><section class="view-card safety-card risk-${safety.riskLevel.toLowerCase()}"><span class="section-kicker">JOB SAFETY CHECK · RISK ASSESSMENT</span><h4>Risk level: ${escapeHtml(safety.riskLevel)} · ${safety.riskScore}/100</h4><p>${escapeHtml(safety.disclaimer)}</p><div class="trust-signals"><b>Positive signals</b>${safety.positiveSignals.map(signal => `<span>✓ ${escapeHtml(signal)}</span>`).join("") || "None detected"}</div><div class="trust-warnings"><b>Warnings</b>${safety.warnings.map(warning => `<span>⚠ ${escapeHtml(warning)}</span>`).join("") || "None detected"}</div><p><strong>Recommendation:</strong> ${escapeHtml(safety.recommendation)}</p></section><h4>Job description</h4><p>${escapeHtml(job.description || "No description provided")}</p><h4>Responsibilities</h4><div class="chips">${(job.responsibilities || []).map(item => `<span>${escapeHtml(item)}</span>`).join("") || "Not listed"}</div><div class="view-card-actions"><label>Resume<select id="applyResume"><option value="">No resume attached</option>${resumes.map(resume => `<option value="${escapeHtml(resume._id)}">${escapeHtml(resume.name)}</option>`).join("")}</select></label><button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(job._id)}">Apply for this job</button></div></article>`;
+  const match = selectedJobMatch || { score: 0, matchedSkills: [], missingSkills: [], explanations: [], components: {}, formula: "" };
+  const normalizedMatch = { ...match, score: normalizeMatchScore(match.score ?? 0) ?? 0 };
+  const components = Object.entries(normalizedMatch.components || {}).filter(([, score]) => score !== null && score !== undefined);
+  const matchLabel = formatMatchPercent(normalizedMatch.score);
+  return `<article class="view-card job-detail-card"><div class="view-card-head"><div><span class="section-kicker">${escapeHtml(job.employmentType || "Full-time")} · ${job.remote ? "Remote" : escapeHtml(job.location || "On-site")}</span><h3>${escapeHtml(job.title)}</h3><p>${escapeHtml(job.company)} · ${escapeHtml(job.location || "Location not listed")}</p></div><span class="match-pill">${matchLabel} match</span></div><div class="job-detail-facts"><span>Posted ${new Date(job.createdAt).toLocaleDateString()}</span><span>Experience ${escapeHtml(job.experience || "Not specified")}</span><span>Education ${escapeHtml(job.educationRequirements || "Not specified")}</span><span>Salary ${job.salaryMin || job.salaryMax ? `${job.salaryMin || "-"} to ${job.salaryMax || "-"}` : "Not listed"}</span><span>Deadline ${job.deadline ? new Date(job.deadline).toLocaleDateString() : "Not specified"}</span></div><h4>Why this job matches you</h4><p>Weighted match score: ${matchLabel}</p><div class="analytics-list">${components.map(([name, score]) => `<div class="analytics-row"><span>${escapeHtml(name)}</span><div><i style="width:${Math.max(0, Math.min(100, Number(score || 0)))}%"></i></div><strong>${formatMatchPercent(score)}</strong></div>`).join("")}</div><ul class="match-explanations">${(normalizedMatch.explanations || []).map(reason => `<li>✓ ${escapeHtml(reason)}</li>`).join("")}</ul><div class="skill-breakdown"><div><b>Matched skills</b>${(normalizedMatch.matchedSkills || []).map(skill => `<span>✓ ${escapeHtml(skill)}</span>`).join("") || "No required skills listed"}</div><div><b>Missing skills</b>${(normalizedMatch.missingSkills || []).map(skill => `<span>• ${escapeHtml(skill)}</span>`).join("") || "None"}</div></div><p class="formula-note">Formula: ${escapeHtml(normalizedMatch.formula || "Weighted job-fit scoring")}. This is a profile-fit estimate, not a hiring probability.</p><section class="view-card safety-card risk-${safety.riskLevel.toLowerCase()}"><span class="section-kicker">JOB SAFETY CHECK · RISK ASSESSMENT</span><h4>Risk level: ${escapeHtml(safety.riskLevel)} · ${safety.riskScore}/100</h4><p>${escapeHtml(safety.disclaimer)}</p><div class="trust-signals"><b>Positive signals</b>${safety.positiveSignals.map(signal => `<span>✓ ${escapeHtml(signal)}</span>`).join("") || "None detected"}</div><div class="trust-warnings"><b>Warnings</b>${safety.warnings.map(warning => `<span>⚠ ${escapeHtml(warning)}</span>`).join("") || "None detected"}</div><p><strong>Recommendation:</strong> ${escapeHtml(safety.recommendation)}</p></section><h4>Job description</h4><p>${escapeHtml(job.description || "No description provided")}</p><h4>Responsibilities</h4><div class="chips">${(job.responsibilities || []).map(item => `<span>${escapeHtml(item)}</span>`).join("") || "Not listed"}</div><div class="view-card-actions"><label>Resume<select id="applyResume"><option value="">No resume attached</option>${resumes.map(resume => `<option value="${escapeHtml(resume._id)}">${escapeHtml(resume.name)}</option>`).join("")}</select></label><button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(job._id)}">Apply for this job</button></div></article>`;
 }
 
 function normalizeJob(job) {
-  const match = job.match || { score: job.matchScore || 0, components: {}, matchedSkills: [], missingSkills: [], explanations: [] };
+  const match = job.match || { score: job.matchScore ?? null, components: {}, matchedSkills: [], missingSkills: [], explanations: [] };
+  const normalizedMatchScore = normalizeMatchScore(job.matchScore ?? match.score ?? null);
   const salary = job.salaryMin || job.salaryMax
     ? `${job.salaryMin ? `INR ${job.salaryMin}` : "Salary"}${job.salaryMax ? `-${job.salaryMax}` : "+"}`
     : "Salary not listed";
@@ -169,8 +193,15 @@ function normalizeJob(job) {
     location: job.location || "Location not listed",
     pay: salary,
     type: job.employmentType || "Full-time",
-    match,
-    matchScore: job.matchScore ?? match.score ?? 0,
+    match: {
+      ...match,
+      score: normalizedMatchScore ?? 0,
+      components: match.components || {},
+      matchedSkills: match.matchedSkills || [],
+      missingSkills: match.missingSkills || [],
+      explanations: match.explanations || []
+    },
+    matchScore: normalizedMatchScore,
     matchedSkills: match.matchedSkills || [],
     missingSkills: match.missingSkills || [],
     skills: (job.requiredSkills?.length ? job.requiredSkills : job.skills || []).join(", ") || "Skills not listed"
@@ -238,16 +269,17 @@ function renderOverviewData() {
   document.getElementById("savedJobCount").textContent = savedJobIds.length;
 
   const featured = recommendedJobs[0] || jobs[0];
-  const featuredMatchScore = featured ? Number(featured.matchScore ?? featured.match?.score ?? 0) : 0;
+  const featuredMatchScore = featured ? normalizeMatchScore(featured.matchScore ?? featured.match?.score ?? null) : null;
+  const featuredMatchLabel = featuredMatchScore === null ? "—" : `${Math.round(Math.max(0, Math.min(100, featuredMatchScore)))}%`;
   document.getElementById("featuredJob").innerHTML = featured
-    ? `<div class="company-logo">${escapeHtml(String(featured.company || "HT").slice(0, 2).toUpperCase())}</div><div class="job-title"><h4>${escapeHtml(featured.title)}</h4><p>${escapeHtml(featured.company)} · ${escapeHtml(featured.location)}</p><div class="chips"><span>${escapeHtml(featured.type)}</span><span>${escapeHtml(featured.pay)}</span></div><div class="inline-actions"><button class="btn btn-dark" data-action="save-job" data-job-id="${escapeHtml(featured.id)}">${savedJobIds.includes(featured.id) ? "Saved" : "Save job"}</button><button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(featured.id)}">Apply</button></div></div><div class="big-match"><b>${Number.isFinite(featuredMatchScore) ? Math.round(featuredMatchScore) : 0}%</b><small>match</small></div>`
+    ? `<div class="company-logo">${escapeHtml(String(featured.company || "HT").slice(0, 2).toUpperCase())}</div><div class="job-title"><h4>${escapeHtml(featured.title)}</h4><p>${escapeHtml(featured.company)} · ${escapeHtml(featured.location)}</p><div class="chips"><span>${escapeHtml(featured.type)}</span><span>${escapeHtml(featured.pay)}</span></div><div class="inline-actions"><button class="btn btn-dark" data-action="save-job" data-job-id="${escapeHtml(featured.id)}">${savedJobIds.includes(featured.id) ? "Saved" : "Save job"}</button><button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(featured.id)}">Apply</button></div></div><div class="big-match"><b>${featuredMatchLabel}</b><small>match</small></div>`
     : `<div class="home-empty">No recommended jobs yet. Check back after recruiters publish vacancies.</div>`;
 
   const statusPanel = document.getElementById("applicationStatusPanel");
   statusPanel.innerHTML = `<div class="panel-head"><div><span class="section-kicker">APPLICATION STATUS</span><h3>Recent applications</h3></div><a href="#applications" data-view-link="applications">All applications →</a></div>${applications.length ? applications.slice(0, 4).map(application => `<div class="health-item"><div class="health-dot"></div><div><b>${escapeHtml(application.title)} · ${escapeHtml(application.company)}</b><small>${escapeHtml(application.updated)}</small></div><span>${escapeHtml(application.status)}</span></div>`).join("") : `<div class="home-empty">Your submitted applications and their status will appear here.</div>`}`;
 
   document.getElementById("recentPostedJobs").innerHTML = jobs.slice(0, 3).map(job => `<div class="home-job-row"><div><b>${escapeHtml(job.title)}</b><small>${escapeHtml(job.company)} · ${escapeHtml(job.location)}</small></div><button data-view-link="find-jobs">View</button></div>`).join("") || `<div class="home-empty">No open roles have been posted yet.</div>`;
-  document.getElementById("homeSavedJobs").innerHTML = savedJobs.slice(0, 3).map(job => `<div class="home-job-row"><div><b>${escapeHtml(job.title)}</b><small>${escapeHtml(job.company)} · ${escapeHtml(job.location)}</small><small>${job.matchScore}% profile match</small></div><button data-action="remove-saved" data-job-id="${escapeHtml(job.id)}">Remove</button></div>`).join("") || `<div class="home-empty">Jobs you save will appear here.</div>`;
+  document.getElementById("homeSavedJobs").innerHTML = savedJobs.slice(0, 3).map(job => `<div class="home-job-row"><div><b>${escapeHtml(job.title)}</b><small>${escapeHtml(job.company)} · ${escapeHtml(job.location)}</small><small>${formatMatchPercent(job.matchScore ?? job.match?.score ?? null)} profile match</small></div><button data-action="remove-saved" data-job-id="${escapeHtml(job.id)}">Remove</button></div>`).join("") || `<div class="home-empty">Jobs you save will appear here.</div>`;
 
   const completion = 25 + (profile.email ? 25 : 0) + (candidateSkills.length ? 25 : 0) + (resumes.length ? 25 : 0);
   document.getElementById("profileCompletion").innerHTML = `<strong>${completion}%</strong><div><i style="width:${completion}%"></i></div><p>${completion === 100 ? "Your profile is ready for recruiters." : "Add your skills and resume to strengthen your profile."}</p>`;

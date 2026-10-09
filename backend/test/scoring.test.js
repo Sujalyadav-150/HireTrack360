@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { calculateMatch, calculateTrust, calculateJobRisk } = require("../utils/scoring");
+const { calculateMatch, calculateTrust, calculateJobRisk, normalizeMatchScore, normalizeUserRole } = require("../utils/scoring");
 
 test("match score is derived from normalized required skills", () => {
   const result = calculateMatch([" JS ", "PowerBI", "SQL"], ["JavaScript", "Power BI", "AWS", "SQL"]);
@@ -11,6 +11,21 @@ test("match score is derived from normalized required skills", () => {
 
 test("empty requirements do not imply a perfect match", () => {
   assert.equal(calculateMatch(["SQL"], []).score, 0);
+});
+
+test("match score normalization handles numeric and nested values without object output", () => {
+  assert.equal(normalizeMatchScore(84), 84);
+  assert.equal(normalizeMatchScore({ score: { value: 76 } }), 76);
+  assert.equal(normalizeMatchScore({ matchScore: "88" }), 88);
+  assert.equal(normalizeMatchScore(null), null);
+  assert.equal(normalizeMatchScore({ bad: "data" }), null);
+  assert.equal(normalizeMatchScore("not a number"), null);
+});
+
+test("role normalization supports legacy and mixed-case job seeker values", () => {
+  assert.equal(normalizeUserRole("job_seeker"), "jobseeker");
+  assert.equal(normalizeUserRole("Job Seeker"), "jobseeker");
+  assert.equal(normalizeUserRole("RECRUITER"), "recruiter");
 });
 
 test("profile-aware match changes with title, experience, education, location, and job type", () => {

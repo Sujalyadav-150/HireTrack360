@@ -11,6 +11,27 @@ const skillAliases = new Map([
 const matchWeights = { skills: 55, title: 15, experience: 10, education: 10, location: 6, employmentType: 4 };
 const freeEmailDomains = new Set(["gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "icloud.com", "proton.me", "protonmail.com"]);
 
+function normalizeUserRole(role) {
+  return String(role ?? "").trim().toLowerCase().replace(/[_\s-]+/g, "");
+}
+
+function normalizeMatchScore(value) {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "object") {
+    for (const candidate of [value.score, value.matchScore, value.value, value.percentage]) {
+      const normalized = normalizeMatchScore(candidate);
+      if (normalized !== null) return normalized;
+    }
+    return null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const numericValue = Number(value);
+    if (Number.isFinite(numericValue)) return numericValue;
+  }
+  return null;
+}
+
 function normalizeSkill(skill) {
   const normalized = String(skill || "").normalize("NFKC").toLowerCase().trim().replace(/\s+/g, " ");
   return skillAliases.get(normalized) || normalized;
@@ -191,4 +212,4 @@ function calculateTrust(job, recruiter) {
   };
 }
 
-module.exports = { calculateMatch, calculateTrust, calculateJobRisk, normalizeSkill };
+module.exports = { calculateMatch, calculateTrust, calculateJobRisk, normalizeSkill, normalizeMatchScore, normalizeUserRole };

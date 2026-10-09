@@ -1,1 +1,11 @@
-{}
+{
+  "name": "hiretrack360",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node --test ./backend/test/*.test.js",
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js"
+  }
+}
+
