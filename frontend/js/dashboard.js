@@ -238,8 +238,9 @@ function renderOverviewData() {
   document.getElementById("savedJobCount").textContent = savedJobIds.length;
 
   const featured = recommendedJobs[0] || jobs[0];
+  const featuredMatchScore = featured ? Number(featured.matchScore ?? featured.match?.score ?? 0) : 0;
   document.getElementById("featuredJob").innerHTML = featured
-    ? `<div class="company-logo">${escapeHtml(String(featured.company || "HT").slice(0, 2).toUpperCase())}</div><div class="job-title"><h4>${escapeHtml(featured.title)}</h4><p>${escapeHtml(featured.company)} · ${escapeHtml(featured.location)}</p><div class="chips"><span>${escapeHtml(featured.type)}</span><span>${escapeHtml(featured.pay)}</span></div><div class="inline-actions"><button class="btn btn-dark" data-action="save-job" data-job-id="${escapeHtml(featured.id)}">${savedJobIds.includes(featured.id) ? "Saved" : "Save job"}</button><button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(featured.id)}">Apply</button></div></div><div class="big-match"><b>${escapeHtml(Number.isFinite(Number(featured.matchScore)) ? Math.round(Number(featured.matchScore)) : 0)}%</b><small>match</small></div>`
+    ? `<div class="company-logo">${escapeHtml(String(featured.company || "HT").slice(0, 2).toUpperCase())}</div><div class="job-title"><h4>${escapeHtml(featured.title)}</h4><p>${escapeHtml(featured.company)} · ${escapeHtml(featured.location)}</p><div class="chips"><span>${escapeHtml(featured.type)}</span><span>${escapeHtml(featured.pay)}</span></div><div class="inline-actions"><button class="btn btn-dark" data-action="save-job" data-job-id="${escapeHtml(featured.id)}">${savedJobIds.includes(featured.id) ? "Saved" : "Save job"}</button><button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(featured.id)}">Apply</button></div></div><div class="big-match"><b>${Number.isFinite(featuredMatchScore) ? Math.round(featuredMatchScore) : 0}%</b><small>match</small></div>`
     : `<div class="home-empty">No recommended jobs yet. Check back after recruiters publish vacancies.</div>`;
 
   const statusPanel = document.getElementById("applicationStatusPanel");
