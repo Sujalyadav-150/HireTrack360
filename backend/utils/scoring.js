@@ -44,7 +44,7 @@ function normalizeSkill(skill) {
 
 function expandSkills(value) {
   const values = Array.isArray(value) ? value : value == null ? [] : [value];
-  return values.flatMap(item => String(item || "").split(/[|,;\\n]+/).map(skill => skill.trim()).filter(Boolean));
+  return values.flatMap(item => String(item || "").split(/[|,;\n]+/).map(skill => skill.trim()).filter(Boolean));
 }
 
 function tokenSet(value) {
