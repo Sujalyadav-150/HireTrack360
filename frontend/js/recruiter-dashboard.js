@@ -50,9 +50,20 @@
     toastTimer = setTimeout(() => { toast.hidden = true; }, 2800);
   }
 
-  async function request(path, options) {
+  async function request(path, options = {}) {
+    // Clear stale role sessions instead of attempting a mutation as the wrong account.
     const result = await window.apiRequest(path, options);
     return result;
+  }
+
+  function scoreValue(value) {
+    if (typeof value === "number" && Number.isFinite(value)) return Math.round(value);
+    if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Math.round(Number(value));
+    if (value && typeof value === "object") {
+      const nested = value.score ?? value.matchScore ?? value.value;
+      if (nested !== undefined && nested !== value) return scoreValue(nested);
+    }
+    return 0;
   }
 
   async function loadDashboard() {
@@ -94,7 +105,8 @@
     const job = application.jobId || {};
     const skills = Array.isArray(candidate.skills) && candidate.skills.length ? candidate.skills.slice(0, 4).join(", ") : "Not added";
     const applicationId = escapeHtml(application._id);
-    return `<tr><td><strong>${escapeHtml(candidate.name || "Candidate")}</strong><small>${escapeHtml(candidate.email || "")}</small><button class="text-action" data-action="view-candidate" data-application-id="${applicationId}">View profile</button></td><td>${escapeHtml(job.title || "Job removed")}</td><td>${escapeHtml(skills)}<small>Match ${application.matchScore || 0}%</small></td><td>${formatDate(application.appliedAt || application.createdAt)}</td><td><span class="recruiter-status status-${escapeHtml(application.status.toLowerCase())}">${escapeHtml(statusLabel(application.status))}</span></td><td><div class="table-actions">${application.status === "APPLIED" ? `<button class="table-action" data-action="set-status" data-status="SCREENING" data-application-id="${applicationId}">Screen</button>` : ""}${!["SHORTLISTED", "INTERVIEW", "OFFERED", "ACCEPTED", "REJECTED"].includes(application.status) ? `<button class="table-action" data-action="set-status" data-status="SHORTLISTED" data-application-id="${applicationId}">Shortlist</button>` : ""}${!["INTERVIEW", "OFFERED", "ACCEPTED", "REJECTED"].includes(application.status) ? `<button class="table-action" data-action="schedule-interview" data-application-id="${applicationId}">Interview</button>` : ""}${application.status === "INTERVIEW" ? `<button class="table-action" data-action="set-status" data-status="OFFERED" data-application-id="${applicationId}">Offer</button>` : ""}${application.status === "OFFERED" ? `<button class="table-action" data-action="set-status" data-status="ACCEPTED" data-application-id="${applicationId}">Hire</button>` : ""}${!["REJECTED", "ACCEPTED"].includes(application.status) ? `<button class="table-action danger-action" data-action="set-status" data-status="REJECTED" data-application-id="${applicationId}">Reject</button>` : ""}</div></td></tr>`;
+    const matchScore = scoreValue(application.matchScore ?? application.match?.score ?? application.matchComponents?.score);
+    return `<tr><td><strong>${escapeHtml(candidate.name || "Candidate")}</strong><small>${escapeHtml(candidate.email || "")}</small><button class="text-action" data-action="view-candidate" data-application-id="${applicationId}">View profile</button></td><td>${escapeHtml(job.title || "Job removed")}</td><td>${escapeHtml(skills)}<small>Match ${matchScore}%</small></td><td>${formatDate(application.appliedAt || application.createdAt)}</td><td><span class="recruiter-status status-${escapeHtml(application.status.toLowerCase())}">${escapeHtml(statusLabel(application.status))}</span></td><td><div class="table-actions">${application.status === "APPLIED" ? `<button class="table-action" data-action="set-status" data-status="SCREENING" data-application-id="${applicationId}">Screen</button>` : ""}${!["SHORTLISTED", "INTERVIEW", "OFFERED", "ACCEPTED", "REJECTED"].includes(application.status) ? `<button class="table-action" data-action="set-status" data-status="SHORTLISTED" data-application-id="${applicationId}">Shortlist</button>` : ""}${!["INTERVIEW", "OFFERED", "ACCEPTED", "REJECTED"].includes(application.status) ? `<button class="table-action" data-action="schedule-interview" data-application-id="${applicationId}">Interview</button>` : ""}${application.status === "INTERVIEW" ? `<button class="table-action" data-action="set-status" data-status="OFFERED" data-application-id="${applicationId}">Offer</button>` : ""}${application.status === "OFFERED" ? `<button class="table-action" data-action="set-status" data-status="ACCEPTED" data-application-id="${applicationId}">Hire</button>` : ""}${!["REJECTED", "ACCEPTED"].includes(application.status) ? `<button class="table-action danger-action" data-action="set-status" data-status="REJECTED" data-application-id="${applicationId}">Reject</button>` : ""}</div></td></tr>`;
   }
 
   function table(headers, rows, empty = emptyMessage) {
@@ -283,7 +295,7 @@
           const safeUrl = /^\/api\/resumes\/[a-f\d]{24}\/download$/i.test(url) ? url : "";
           return safeUrl ? `<button class="table-action" data-action="download-resume" data-resume-url="${escapeHtml(safeUrl)}" data-file-name="${escapeHtml(resume.name || "Resume")}">${escapeHtml(resume.name || "Download resume")}</button>` : "";
         }).filter(Boolean);
-        document.getElementById("candidateDialogBody").innerHTML = `<p><strong>Email:</strong> ${escapeHtml(candidate.email || "Not provided")}</p><p><strong>Location:</strong> ${escapeHtml(candidate.location || "Not provided")}</p><p><strong>Experience:</strong> ${escapeHtml(candidate.experience || "Not provided")}</p><p><strong>Skills:</strong> ${escapeHtml((candidate.skills || []).join(", ") || "Not added")}</p><p><strong>Applied for:</strong> ${escapeHtml(application.jobId?.title || "Job removed")}</p><p><strong>Match:</strong> ${application.matchScore || 0}% · Matched ${escapeHtml((application.matchedSkills || []).join(", ") || "none")}</p><div class="dialog-resumes"><strong>Resume:</strong> ${resumeLinks.length ? resumeLinks.join("") : "No resume on file"}</div>`;
+        document.getElementById("candidateDialogBody").innerHTML = `<p><strong>Email:</strong> ${escapeHtml(candidate.email || "Not provided")}</p><p><strong>Location:</strong> ${escapeHtml(candidate.location || "Not provided")}</p><p><strong>Experience:</strong> ${escapeHtml(candidate.experience || "Not provided")}</p><p><strong>Skills:</strong> ${escapeHtml((candidate.skills || []).join(", ") || "Not added")}</p><p><strong>Applied for:</strong> ${escapeHtml(application.jobId?.title || "Job removed")}</p><p><strong>Match:</strong> ${scoreValue(application.matchScore ?? application.match?.score ?? application.matchComponents?.score)}% · Matched ${escapeHtml((application.matchedSkills || []).join(", ") || "none")}</p><div class="dialog-resumes"><strong>Resume:</strong> ${resumeLinks.length ? resumeLinks.join("") : "No resume on file"}</div>`;
         candidateDialog.showModal();
       }
     } catch (error) {
