@@ -272,6 +272,9 @@
         notify("Notifications marked as read");
       } else if (action.dataset.action === "download-resume") {
         await window.downloadProtectedFile(action.dataset.resumeUrl, action.dataset.fileName);
+        notify("Resume download started");
+      } else if (action.dataset.action === "view-resume") {
+        await window.viewProtectedFile(action.dataset.resumeUrl);
       } else if (action.dataset.action === "enable-push") {
         if (!("serviceWorker" in navigator) || !("PushManager" in window)) throw new Error("This browser does not support push notifications");
         const config = await request("/config");
@@ -292,11 +295,17 @@
         if (!application) return;
         const candidate = application.candidateId || {};
         document.getElementById("candidateDialogTitle").textContent = candidate.name || "Candidate profile";
-        const resumeLinks = (candidate.resumeVersions || []).map(resume => {
-          const url = String(resume.url || "");
-          const safeUrl = /^\/api\/resumes\/[a-f\d]{24}\/download$/i.test(url) ? url : "";
-          return safeUrl ? `<button class="table-action" data-action="download-resume" data-resume-url="${escapeHtml(safeUrl)}" data-file-name="${escapeHtml(resume.name || "Resume")}">${escapeHtml(resume.name || "Download resume")}</button>` : "";
-        }).filter(Boolean);
+        const selectedResumeId = String(application.resumeId?._id || application.resumeId || "");
+        const safeResumeId = /^[a-f\\d]{24}$/i.test(selectedResumeId) ? selectedResumeId : "";
+        const resumeName = String(application.resumeVersion || (candidate.resumeVersions || []).find(resume => String(resume.url || "").match(/[a-f\\d]{24}/i)?.[0] === safeResumeId)?.name || "Resume");
+        const viewResumeUrl = safeResumeId ? `/api/resumes/${safeResumeId}/view` : "";
+        const downloadResumeUrl = safeResumeId ? `/api/resumes/${safeResumeId}/download` : "";
+        const resumeLinks = safeResumeId
+          ? [
+              `<button class="table-action" data-action="view-resume" data-resume-url="${escapeHtml(viewResumeUrl)}">View resume</button>`,
+              `<button class="table-action" data-action="download-resume" data-resume-url="${escapeHtml(downloadResumeUrl)}" data-file-name="${escapeHtml(resumeName)}">Download resume</button>`
+            ]
+          : [];
         const matchValue = scoreValue(application.matchScore ?? application.match?.score ?? application.matchComponents?.score);
         const matchLabel = matchValue === null ? "—" : `${matchValue}%`;
         document.getElementById("candidateDialogBody").innerHTML = `<p><strong>Email:</strong> ${escapeHtml(candidate.email || "Not provided")}</p><p><strong>Location:</strong> ${escapeHtml(candidate.location || "Not provided")}</p><p><strong>Experience:</strong> ${escapeHtml(candidate.experience || "Not provided")}</p><p><strong>Skills:</strong> ${escapeHtml((candidate.skills || []).join(", ") || "Not added")}</p><p><strong>Applied for:</strong> ${escapeHtml(application.jobId?.title || "Job removed")}</p><p><strong>Match:</strong> ${matchLabel} · Matched ${escapeHtml((application.matchedSkills || []).join(", ") || "none")}</p><div class="dialog-resumes"><strong>Resume:</strong> ${resumeLinks.length ? resumeLinks.join("") : "No resume on file"}</div>`;
