@@ -16,15 +16,15 @@ const KNOWN_SKILLS = [
   "Algorithms", "OOP", "Problem Solving", "PowerPoint", "Microsoft Word"
 ];
 
-const SKILL_SECTION = /^(?:technical\\s+skills?|skills(?:\\s+and\\s+(?:competencies|technologies))?|core\\s+competencies|competencies|technologies|tools\\s+and\\s+technologies|technical\\s+expertise|key\\s+skills)\\s*:?$/i;
-const OTHER_SECTION = /^(?:professional\\s+summary|summary|objective|experience|work\\s+experience|professional\\s+experience|employment\\s+history|education|projects?|certifications?|achievements?|interests|languages|publications|references)\\s*:?$/i;
+const SKILL_SECTION = /^(?:technical\s+skills?|skills(?:\s+and\s+(?:competencies|technologies))?|core\s+competencies|competencies|technologies|tools\s+and\s+technologies|technical\s+expertise|key\s+skills)\s*:?$/i;
+const OTHER_SECTION = /^(?:professional\s+summary|summary|objective|experience|work\s+experience|professional\s+experience|employment\s+history|education|projects?|certifications?|achievements?|interests|languages|publications|references)\s*:?$/i;
 
 function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&").replace(/\\s+/g, "\\\\s+");
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 }
 
 function findSkillsInText(text) {
-  const normalized = String(text || "").replace(/\\u00a0/g, " ").replace(/\\s+/g, " ").toLowerCase();
+  const normalized = String(text || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").toLowerCase();
   const found = [];
   for (const skill of KNOWN_SKILLS) {
     const escaped = escapeRegex(skill.toLowerCase());
@@ -35,7 +35,7 @@ function findSkillsInText(text) {
 }
 
 function extractKnownSkills(text) {
-  const lines = String(text || "").replace(/\\u00a0/g, " ").split(/\\r?\\n/).map(line => line.trim()).filter(Boolean);
+  const lines = String(text || "").replace(/\u00a0/g, " ").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   const sections = [];
   let activeSection = "";
   for (const line of lines) {
