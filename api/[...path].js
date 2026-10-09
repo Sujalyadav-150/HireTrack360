@@ -19,6 +19,14 @@ module.exports = async function handler(req, res) {
       }
       await connectionPromise;
     }
+    // Vercel catch-all functions may strip the /api prefix before invoking
+    // this handler, while Express routes are registered as /api/....
+    // Normalize the path once so /recruiter/jobs reaches /api/recruiter/jobs.
+    const originalUrl = req.url || "/";
+    const pathOnly = originalUrl.split("?")[0];
+    if (pathOnly !== "/api" && !pathOnly.startsWith("/api/")) {
+      req.url = `/api${originalUrl.startsWith("/") ? originalUrl : `/${originalUrl}`}`;
+    }
     return app(req, res);
   } catch (error) {
     console.error("Vercel API initialization failed:", error.message);
