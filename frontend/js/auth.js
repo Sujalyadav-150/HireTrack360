@@ -24,8 +24,9 @@ function redirectForRole(role) {
 }
 
 function saveSession(result) {
-  // The same-origin API may authenticate using an HTTP-only cookie, while older
-  // frontend builds use a localStorage bearer token. Keep both paths working.
+  // Keep the bearer token for the dashboard API requests and the HTTP-only cookie
+  // for same-origin session continuity. Older deployments returned only a cookie.
+  if (result.token) localStorage.setItem("hiretrack_token", result.token);
   localStorage.setItem("hiretrack_role", result.user.role);
   localStorage.setItem("hiretrack_name", result.user.name);
   localStorage.setItem("hiretrack_demo_user", result.user.email);
