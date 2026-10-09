@@ -33,3 +33,11 @@ module.exports = async function handler(req, res) {
     return res.status(503).json({ success: false, message: "Service is temporarily unavailable. Check database configuration." });
   }
 };
+
+// Let Express/multer read multipart streams directly for resume uploads.
+// Vercel's pre-parsing can consume the request stream before multer receives it.
+module.exports.config = {
+  api: {
+    bodyParser: false
+  }
+};
