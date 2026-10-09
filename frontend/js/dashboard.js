@@ -133,9 +133,29 @@ function renderSavedJobs() {
 }
 
 function renderCareerGaps() {
-  const missing = [...new Set(jobs.flatMap(job => job.missingSkills || []))].slice(0, 12);
-  return `<article class="view-card skill-gap-card"><span class="section-kicker">SKILL GAPS FROM OPEN JOBS</span><h3>${missing.length ? "Skills to consider building" : "No skill gaps detected"}</h3><p>Based on required skills in currently open roles compared with your profile.</p><div class="chips">${missing.map(skill => `<span>${escapeHtml(skill)}</span>`).join("") || "Your listed skills currently cover the skills shown in open roles."}</div></article>
-    <article class="view-card"><span class="section-kicker">YOUR PROFILE SKILLS</span><div class="chips">${candidateSkills.map(skill => `<span>${escapeHtml(skill)}</span>`).join("") || "Add skills in My Resume / Profile."}</div></article>`;
+  // Show only real skill gaps from open jobs, with normalized de-duplication.
+  // Scoring output is already computed by the backend for each open job.
+  const skillMap = new Map();
+  for (const job of jobs) {
+    for (const item of Array.isArray(job.missingSkills) ? job.missingSkills : []) {
+      const label = String(item || "").trim();
+      if (!label) continue;
+      const key = label.toLocaleLowerCase().replace(/\s+/g, " ");
+      if (!skillMap.has(key)) skillMap.set(key, label);
+    }
+  }
+  const missing = [...skillMap.values()].slice(0, 12);
+  const profileSkills = Array.isArray(candidateSkills) ? candidateSkills.filter(Boolean) : [];
+  return `<article class="view-card skill-gap-card">
+      <span class="section-kicker">SKILL GAPS FROM OPEN JOBS</span>
+      <h3>${missing.length ? "Skills to consider building" : "No skill gaps detected"}</h3>
+      <p>These skills are required by currently open jobs but were not found in your saved profile skills. Add accurate skills to your profile to improve matching.</p>
+      ${missing.length ? `<div class="skill-chip-list">${missing.map(skill => `<span class="skill-chip">${escapeHtml(skill)}</span>`).join("")}</div>` : `<p class="empty-inline">No missing skills were returned for the current open jobs.</p>`}
+    </article>
+    <article class="view-card">
+      <span class="section-kicker">YOUR PROFILE SKILLS</span>
+      ${profileSkills.length ? `<div class="skill-chip-list">${profileSkills.map(skill => `<span class="skill-chip">${escapeHtml(skill)}</span>`).join("")}</div>` : `<p class="empty-inline">No profile skills yet. Add them in My Resume / Profile to get useful comparisons.</p>`}
+    </article>`;
 }
 
 function renderResumes() {
@@ -365,15 +385,31 @@ async function handleAction(button) {
       showToast(error.message);
     }
   } else if (action === "remove-saved") {
-    try {
-      await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/save`, { method: "POST" });
-      await refreshCandidateData();
-    } catch (error) {
-      showToast(error.message);
+    if (!jobId) {
+      showToast("Could not identify the saved job. Refresh the page and try again.");
       return;
     }
-    renderView();
-    showToast("Job removed from saved jobs");
+    button.disabled = true;
+    try {
+      // The save endpoint toggles the saved state. Remove only when the job is
+      // currently saved, then confirm from the dashboard response.
+      if (!savedJobIds.map(String).includes(String(jobId))) {
+        await refreshCandidateData();
+        renderView();
+        showToast("This job is no longer in your saved list");
+        return;
+      }
+      const result = await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/save`, { method: "POST" });
+      await refreshCandidateData();
+      renderView();
+      showToast(result.saved === false || !savedJobIds.map(String).includes(String(jobId))
+        ? "Job removed from saved jobs"
+        : "The job is still saved. Please retry.");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      button.disabled = false;
+    }
   } else if (action === "view-job") {
     try {
       await selectJob(jobId);
