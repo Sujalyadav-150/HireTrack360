@@ -24,7 +24,8 @@ function redirectForRole(role) {
 }
 
 function saveSession(result) {
-  localStorage.removeItem("hiretrack_token");
+  // The same-origin API may authenticate using an HTTP-only cookie, while older
+  // frontend builds use a localStorage bearer token. Keep both paths working.
   localStorage.setItem("hiretrack_role", result.user.role);
   localStorage.setItem("hiretrack_name", result.user.name);
   localStorage.setItem("hiretrack_demo_user", result.user.email);
