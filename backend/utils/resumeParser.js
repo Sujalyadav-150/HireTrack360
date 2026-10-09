@@ -16,15 +16,44 @@ const KNOWN_SKILLS = [
   "Algorithms", "OOP", "Problem Solving", "PowerPoint", "Microsoft Word"
 ];
 
-function extractKnownSkills(text) {
-  const normalized = String(text || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").toLowerCase();
+const SKILL_SECTION = /^(?:technical\\s+skills?|skills(?:\\s+and\\s+(?:competencies|technologies))?|core\\s+competencies|competencies|technologies|tools\\s+and\\s+technologies|technical\\s+expertise|key\\s+skills)\\s*:?$/i;
+const OTHER_SECTION = /^(?:professional\\s+summary|summary|objective|experience|work\\s+experience|professional\\s+experience|employment\\s+history|education|projects?|certifications?|achievements?|interests|languages|publications|references)\\s*:?$/i;
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&").replace(/\\s+/g, "\\\\s+");
+}
+
+function findSkillsInText(text) {
+  const normalized = String(text || "").replace(/\\u00a0/g, " ").replace(/\\s+/g, " ").toLowerCase();
   const found = [];
   for (const skill of KNOWN_SKILLS) {
-    const escaped = skill.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    const escaped = escapeRegex(skill.toLowerCase());
     const pattern = new RegExp(`(^|[^a-z0-9+#.])${escaped}($|[^a-z0-9+#.])`, "i");
     if (pattern.test(normalized) && !found.some(item => item.toLowerCase() === skill.toLowerCase())) found.push(skill);
   }
   return found;
+}
+
+function extractKnownSkills(text) {
+  const lines = String(text || "").replace(/\\u00a0/g, " ").split(/\\r?\\n/).map(line => line.trim()).filter(Boolean);
+  const sections = [];
+  let activeSection = "";
+  for (const line of lines) {
+    const heading = line.replace(/[•*#:_-]+$/g, "").trim();
+    if (SKILL_SECTION.test(heading)) {
+      activeSection = "skills";
+      continue;
+    }
+    if (OTHER_SECTION.test(heading)) {
+      activeSection = "";
+      continue;
+    }
+    if (activeSection === "skills") sections.push(line);
+  }
+  const sectionSkills = findSkillsInText(sections.join(" "));
+  // Prefer a dedicated skills section to avoid treating every technology mentioned
+  // in project descriptions as a verified skill. Fall back for resumes without headings.
+  return sectionSkills.length ? sectionSkills : findSkillsInText(text);
 }
 
 async function extractResumeSkills(filePath, originalName = "") {
