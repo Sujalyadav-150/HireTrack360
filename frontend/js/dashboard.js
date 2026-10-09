@@ -385,28 +385,24 @@ async function handleAction(button) {
     }
   } else if (action === "remove-saved") {
     if (!jobId) {
-      showToast("Could not identify the saved job. Refresh and try again.");
+      showToast("Could not identify this saved job. Refresh and try again.");
       return;
     }
     button.disabled = true;
     try {
-      // This API toggles saved state; avoid toggling a job back on accidentally.
-      if (!savedJobIds.map(String).includes(String(jobId))) {
-        await refreshCandidateData();
-        renderView();
-        showToast("This job is no longer in your saved list");
-        return;
-      }
       const result = await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/save`, { method: "POST" });
+      if (result.saved !== false) {
+        // The endpoint toggles state; if it returned saved=true then we just
+        // re-saved the job, so immediately toggle once more to undo the action.
+        await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/save`, { method: "POST" });
+        throw new Error("The job was not removed. Please try again.");
+      }
       await refreshCandidateData();
-      const stillSaved = savedJobIds.map(String).includes(String(jobId));
       renderView();
-      showToast(!stillSaved && result.saved === false
-        ? "Job removed from saved jobs"
-        : !stillSaved ? "Job removed from saved jobs"
-        : "The job is still saved. Please retry.");
+      showToast("Job removed from saved jobs");
     } catch (error) {
       showToast(error.message);
+      try { await refreshCandidateData(); renderView(); } catch {}
     } finally {
       button.disabled = false;
     }
