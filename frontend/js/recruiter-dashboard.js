@@ -382,12 +382,13 @@
     return;
   }
 
-  if (session.user.role === "jobseeker") {
-    location.href = "dashboard.html";
-    return;
-  }
   if (session.user.role !== "recruiter") {
-    overviewView.innerHTML = '<div class="view-card empty-state"><h3>Recruiter access required</h3><p>This account does not have recruiter access. Please sign in with a recruiter account.</p></div>';
+    // Do not redirect a job seeker into the recruiter workspace or clear their session.
+    overviewView.innerHTML = '<div class="view-card empty-state"><h3>Recruiter account required</h3><p>You are signed in with a job seeker account. Sign out and choose Recruiter to open this dashboard.</p><button class="btn btn-primary" type="button" id="switchAccount">Go to recruiter sign in</button></div>';
+    document.getElementById("switchAccount")?.addEventListener("click", () => {
+      ["hiretrack_token","hiretrack_role","hiretrack_name","hiretrack_demo_user"].forEach(key => localStorage.removeItem(key));
+      location.href = "login.html?role=recruiter";
+    });
     return;
   }
 
