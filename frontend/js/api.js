@@ -8,6 +8,7 @@ async function apiRequest(path, options = {}) {
   if (!(options.body instanceof FormData)) headers["Content-Type"] = headers["Content-Type"] || "application/json";
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
+    cache: "no-store",
     credentials: "same-origin",
     headers: {
       ...(token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {}),
