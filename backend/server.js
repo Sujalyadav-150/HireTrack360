@@ -299,7 +299,10 @@ app.post("/api/auth/forgot-password", async (req, res) => {
       // Use the configured frontend URL when provided; otherwise use the host
       // that actually requested the reset. This makes local phone testing work
       // without generating a link to the phone's own localhost.
-      const resetBaseUrl = process.env.FRONTEND_URL?.trim() || `${req.protocol}://${req.get("host")}`;
+      const requestBaseUrl = `${req.protocol}://${req.get("host")}`;
+      // On Vercel, generate the reset link on the same deployment that issued
+      // the token. A stale FRONTEND_URL can point to another deployment.
+      const resetBaseUrl = process.env.VERCEL ? requestBaseUrl : (process.env.FRONTEND_URL?.trim() || requestBaseUrl);
       await sendPasswordReset(user, token, resetBaseUrl);
     }
   } catch (error) {
