@@ -39,9 +39,10 @@ let jobFilters = {};
 let selectedJobDetails = null;
 let selectedJobMatch = null;
 let profile = {
-  name: authenticatedUser.name,
-  email: authenticatedUser.email,
-  role: authenticatedUser.role
+  ...authenticatedUser,
+  name: authenticatedUser.name || "",
+  email: authenticatedUser.email || "",
+  role: authenticatedUser.role || "jobseeker"
 };
 let candidateSkills = authenticatedUser.skills || [];
 let currentView = window.location.hash.slice(1) || "overview";
@@ -263,6 +264,11 @@ async function refreshCandidateData() {
 
   const dashboardResult = dashboardState.status === "fulfilled" ? dashboardState.value : {};
   if (dashboardState.status === "rejected") console.warn("Some dashboard widgets are unavailable:", dashboardState.reason);
+  if (dashboardResult.user && typeof dashboardResult.user === "object") {
+    profile = { ...profile, ...dashboardResult.user };
+    candidateSkills = Array.isArray(dashboardResult.user.skills) ? dashboardResult.user.skills : [];
+    localStorage.setItem("hiretrack_name", profile.name || "");
+  }
   savedJobs = Array.isArray(dashboardResult.savedJobs) ? dashboardResult.savedJobs.map(normalizeJob) : [];
   savedJobIds = savedJobs.map(job => job.id);
   resumes = (Array.isArray(dashboardResult.resumes) ? dashboardResult.resumes : []).map(resume => ({
@@ -285,7 +291,7 @@ async function refreshCandidateData() {
       jobId: String(application.jobId._id),
       title: application.jobId.title,
       company: application.jobId.company,
-      status: applicationStatus(application.status),
+      status: application.status,
       appliedAt: new Date(application.appliedAt || application.createdAt).toLocaleDateString(),
       updated: applicationStatus(application.status) + " · " + new Date(application.lastUpdatedAt || application.lastUpdated || application.createdAt).toLocaleDateString(),
       needsFollowUp: staleApplicationIds.includes(String(application._id)) || application.followUpRequired,
@@ -321,10 +327,10 @@ async function selectJob(jobId) {
 
 function renderOverviewData() {
   const countFor = statuses => applications.filter(application => statuses.includes(application.status)).length;
-  document.querySelector('[data-stat="applied"]').textContent = applications.length;
-  document.querySelector('[data-stat="review"]').textContent = countFor(["Under Review"]);
-  document.querySelector('[data-stat="shortlisted"]').textContent = countFor(["Shortlisted"]);
-  document.querySelector('[data-stat="interviews"]').textContent = countFor(["Interview"]);
+  document.querySelector('[data-stat="applied"]').textContent = countFor(["APPLIED", "SCREENING", "SHORTLISTED", "INTERVIEW", "OFFER", "OFFERED", "ACCEPTED", "REJECTED"]);
+  document.querySelector('[data-stat="review"]').textContent = countFor(["SCREENING"]);
+  document.querySelector('[data-stat="shortlisted"]').textContent = countFor(["SHORTLISTED"]);
+  document.querySelector('[data-stat="interviews"]').textContent = countFor(["INTERVIEW"]);
   document.getElementById("savedJobCount").textContent = savedJobIds.length;
 
   const featured = recommendedJobs[0] || jobs[0];
@@ -599,9 +605,15 @@ window.addEventListener("popstate", () => {
 
 try {
   await refreshCandidateData();
-  analyticsData = await window.apiRequest("/analytics/mine");
 } catch (error) {
   showToast(error.message);
+}
+try {
+  analyticsData = await window.apiRequest("/analytics/mine");
+} catch (error) {
+  // Analytics is optional to the rest of the dashboard; do not let a failed
+  // chart request block the real applications, resumes, jobs, and profile.
+  console.warn("Candidate analytics unavailable:", error.message);
 }
 renderView();
 })();
