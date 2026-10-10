@@ -3,9 +3,17 @@
   try {
     const session = await window.apiRequest("/auth/me");
     authenticatedUser = session.user;
-  } catch {
-    localStorage.removeItem("hiretrack_token");
-    window.location.href = "login.html";
+  } catch (error) {
+    if (error.status === 401) {
+      localStorage.removeItem("hiretrack_token");
+      localStorage.removeItem("hiretrack_role");
+      localStorage.removeItem("hiretrack_name");
+      window.location.href = "login.html";
+      return;
+    }
+    console.error("Job seeker session check failed:", error);
+    document.body.innerHTML = `<main style="max-width:640px;margin:10vh auto;padding:24px;font:16px system-ui"><h1>Dashboard could not verify your session</h1><p>${String(error.message || "The API request failed").replace(/[&<>"]/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[character]))}</p><p>Your login has not been cleared. This is likely a deployment/API routing error rather than a password problem.</p><button id="retryDashboard" type="button">Retry</button> <a href="login.html">Back to sign in</a></main>`;
+    document.getElementById("retryDashboard").addEventListener("click", () => window.location.reload());
     return;
   }
   if (authenticatedUser.role !== "jobseeker") {
