@@ -3,15 +3,11 @@ const API_BASE = (() => {
 })();
 
 async function apiRequest(path, options = {}) {
-  // Authentication is shared between tabs on the same origin. Prefer the current
-  // token but handle expired/stale sessions consistently for every page.
   const token = localStorage.getItem("hiretrack_token");
   const headers = { ...(options.headers || {}) };
   if (!(options.body instanceof FormData)) headers["Content-Type"] = headers["Content-Type"] || "application/json";
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
-    // Keep the HTTP-only session cookie available after refresh and use it as
-    // the primary production auth mechanism; bearer token remains for older clients.
     credentials: "same-origin",
     headers: {
       ...(token && token !== "undefined" ? { Authorization: `Bearer ${token}` } : {}),
@@ -22,15 +18,15 @@ async function apiRequest(path, options = {}) {
   let result = {};
   try { result = rawResponse ? JSON.parse(rawResponse) : {}; } catch {}
   if (!response.ok) {
-    // A stale token is commonly left behind when the user switches accounts in
-    // another tab. Remove it so the user can sign in again rather than retry
-    // mutations with a different account's role.
     if (response.status === 401) {
       localStorage.removeItem("hiretrack_token");
       localStorage.removeItem("hiretrack_role");
       localStorage.removeItem("hiretrack_name");
     }
-    throw new Error(result.message || `Request failed (${response.status}) at ${path}. Check Vercel Runtime Logs for the server-side error.`);
+    const error = new Error(result.message || `Request failed (${response.status}) at ${path}. Check Vercel Runtime Logs for the server-side error.`);
+    error.status = response.status;
+    error.path = path;
+    throw error;
   }
   return result;
 }
