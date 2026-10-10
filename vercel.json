@@ -4,6 +4,9 @@
   "functions": {
     "api/[...path].js": {
       "maxDuration": 30
+    },
+    "api/analytics/mine.js": {
+      "maxDuration": 30
     }
   },
   "installCommand": "npm install"
