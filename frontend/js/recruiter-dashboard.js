@@ -162,7 +162,7 @@
   }
 
   function renderNotifications() {
-    return `<section class="recruiter-panel"><div class="recruiter-panel-head"><div><span class="section-kicker">NOTIFICATION CENTER</span><h3>${unreadNotifications} unread</h3></div><button class="table-action" data-action="mark-all-read">Mark all read</button></div>${notifications.length ? notifications.map(notification => `<article class="view-card compact-row notification-row ${notification.read ? "read" : "unread"}"><div><span class="section-kicker">${escapeHtml(notification.type)} · ${formatDate(notification.createdAt)}</span><h3>${escapeHtml(notification.title)}</h3><p>${escapeHtml(notification.message)}</p></div>${notification.read ? "" : `<button class="table-action" data-action="mark-read" data-notification-id="${escapeHtml(notification._id)}">Mark read</button>`}</article>`).join("") : `<div class="recruiter-empty"><strong>You are all caught up</strong><p>New applications and status updates will appear here.</p></div>`}<div class="push-settings"><button class="btn btn-primary" data-action="enable-push">Enable browser notifications</button><button class="btn btn-ghost" data-action="test-push">Send test notification</button></div></section>`;
+    return `<section class="recruiter-panel"><div class="recruiter-panel-head"><div><span class="section-kicker">NOTIFICATION CENTER</span><h3>${unreadNotifications} unread</h3></div><button class="table-action" data-action="mark-all-read">Mark all read</button></div>${notifications.length ? notifications.map(notification => `<article class="view-card compact-row notification-row ${notification.read ? "read" : "unread"}"><div><span class="section-kicker">${escapeHtml(notification.type)} · ${formatDate(notification.createdAt)}</span><h3>${escapeHtml(notification.title)}</h3><p>${escapeHtml(notification.message)}</p></div>${notification.read ? "" : `<button class="table-action" data-action="mark-read" data-notification-id="${escapeHtml(notification._id)}">Mark read</button>`}</article>`).join("") : `<div class="recruiter-empty"><strong>You are all caught up</strong><p>New applications and status updates will appear here.</p></div>`}<div class="push-settings"><button class="btn btn-primary" data-action="enable-push">Enable browser notifications</button></div></section>`;
   }
 
   function renderAnalytics() {
@@ -287,9 +287,6 @@
         const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
         await request("/push/subscribe", { method: "POST", body: JSON.stringify(subscription) });
         notify("Browser notifications enabled");
-      } else if (action.dataset.action === "test-push") {
-        const result = await request("/push/test", { method: "POST" });
-        notify(result.message);
       } else if (action.dataset.action === "view-candidate") {
         const application = applications.find(item => item._id === action.dataset.applicationId);
         if (!application) return;
