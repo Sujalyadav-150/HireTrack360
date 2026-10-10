@@ -383,6 +383,11 @@ app.patch("/api/jobseeker/profile", authenticate, requireRole("jobseeker"), asyn
 });
 
 app.get("/api/jobs", optionalAuthenticate, async (req, res) => {
+  // Job listings change whenever recruiters publish, edit, close, or reopen a vacancy.
+  // Prevent browsers and intermediary caches from serving an older public listing.
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
   try {
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
