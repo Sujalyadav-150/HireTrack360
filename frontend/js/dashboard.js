@@ -327,7 +327,7 @@ async function selectJob(jobId) {
 
 function renderOverviewData() {
   const countFor = statuses => applications.filter(application => statuses.includes(application.status)).length;
-  document.querySelector('[data-stat="applied"]').textContent = countFor(["APPLIED", "SCREENING", "SHORTLISTED", "INTERVIEW", "OFFER", "OFFERED", "ACCEPTED", "REJECTED"]);
+  document.querySelector('[data-stat="applied"]').textContent = applications.length;
   document.querySelector('[data-stat="review"]').textContent = countFor(["SCREENING"]);
   document.querySelector('[data-stat="shortlisted"]').textContent = countFor(["SHORTLISTED"]);
   document.querySelector('[data-stat="interviews"]').textContent = countFor(["INTERVIEW"]);
