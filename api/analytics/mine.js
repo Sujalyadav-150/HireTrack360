@@ -5,8 +5,7 @@ module.exports = function analyticsMineHandler(req, res) {
   const originalUrl = req.url || "";
   const queryIndex = originalUrl.indexOf("?");
   const query = queryIndex >= 0 ? originalUrl.slice(queryIndex) : "";
-  // Explicit API functions can receive either a prefix-stripped path or the
-  // original /api path. The shared handler then normalizes to Express routes.
+  // Force the Express API path regardless of Vercel's per-function path rewrite.
   req.url = "/api/analytics/mine" + query;
   return apiHandler(req, res);
 };
