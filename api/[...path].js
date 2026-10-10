@@ -19,12 +19,14 @@ module.exports = async function handler(req, res) {
       }
       await connectionPromise;
     }
-    // Vercel catch-all functions may strip the /api prefix before invoking
-    // this handler, while Express routes are registered as /api/....
-    // Normalize the path once so /recruiter/jobs reaches /api/recruiter/jobs.
+
+    // Vercel catch-all and explicit function routes can differ in whether
+    // the /api prefix is retained. Express routes are registered with /api.
     const originalUrl = req.url || "/";
     const pathOnly = originalUrl.split("?")[0];
-    if (pathOnly !== "/api" && !pathOnly.startsWith("/api/")) {
+    if (pathOnly === "/api" || pathOnly.startsWith("/api/")) {
+      req.url = originalUrl;
+    } else {
       req.url = `/api${originalUrl.startsWith("/") ? originalUrl : `/${originalUrl}`}`;
     }
     return app(req, res);
@@ -34,8 +36,7 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// Let Express/multer read multipart streams directly for resume uploads.
-// Vercel's pre-parsing can consume the request stream before multer receives it.
+// Multipart uploads must reach multer as an unconsumed request stream.
 module.exports.config = {
   api: {
     bodyParser: false
