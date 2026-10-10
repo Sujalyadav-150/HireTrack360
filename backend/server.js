@@ -353,6 +353,10 @@ app.get("/api/config", (req, res) => {
   });
 });
 
+app.get("/api/jobseeker/profile", authenticate, requireRole("jobseeker"), (req, res) => {
+  res.json({ success: true, user: publicUser(req.user) });
+});
+
 app.patch("/api/jobseeker/profile", authenticate, requireRole("jobseeker"), async (req, res) => {
   const allowedFields = ["name", "phone", "location", "skills", "experience", "education", "bio", "targetRole", "preferredLocations", "preferredJobTypes", "remotePreference"];
   for (const field of allowedFields) {
