@@ -33,7 +33,7 @@ async function sendEmail({ to, subject, text, html }) {
 }
 
 async function sendPasswordReset(user, token, baseUrl) {
-  const resetBaseUrl = (process.env.FRONTEND_URL || process.env.APP_URL || baseUrl || "http://localhost:8000").trim().replace(/\/+$/, "");
+  const resetBaseUrl = (baseUrl || process.env.FRONTEND_URL || process.env.APP_URL || "http://localhost:8000").trim().replace(/\/+$/, "");
   const resetUrl = new URL("/reset-password.html", resetBaseUrl);
   resetUrl.searchParams.set("token", token);
   return sendEmail({
