@@ -398,7 +398,17 @@ app.get("/api/jobs", optionalAuthenticate, async (req, res) => {
       filter.location = { $regex: req.query.location.trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
     }
     if (typeof req.query.type === "string" && req.query.type.trim()) filter.employmentType = req.query.type.trim();
-    if (req.query.remote === "true") filter.remote = true;
+    if (req.query.remote === "true") {
+      // Older recruiter posts may use "Remote" in location/job type without
+      // setting the separate remote checkbox. Include those listings too.
+      filter.$and = [...(filter.$and || []), {
+        $or: [
+          { remote: true },
+          { location: { $regex: "remote", $options: "i" } },
+          { employmentType: { $regex: /^remote$/i } }
+        ]
+      }];
+    }
     if (typeof req.query.experience === "string" && req.query.experience.trim()) {
       filter.experience = { $regex: req.query.experience.trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
     }
@@ -644,7 +654,7 @@ app.post("/api/recruiter/jobs", authenticate, requireRole("recruiter"), async (r
       educationRequirements: typeof educationRequirements === "string" ? educationRequirements.trim().slice(0, 200) : undefined,
       contactEmail: req.user.email,
       externalLinks: Array.isArray(externalLinks) ? externalLinks.filter(link => typeof link === "string" && /^https?:\/\//i.test(link)).slice(0, 10) : [],
-      remote: Boolean(remote),
+      remote: Boolean(remote) || /remote/i.test(location.trim()) || /^remote$/i.test(employmentType || ""),
       experience,
       salaryMin: Number(salaryMin) || undefined,
       salaryMax: Number(salaryMax) || undefined,
