@@ -627,6 +627,25 @@ window.addEventListener("popstate", () => {
   renderView();
 });
 
+// Refresh public vacancies when the seeker returns to this tab.
+let refreshingPublicJobs = false;
+async function refreshPublicJobsOnReturn() {
+  if (document.visibilityState !== "visible" || refreshingPublicJobs) return;
+  refreshingPublicJobs = true;
+  try {
+    await loadJobs(jobFilters, jobPagination.page || 1);
+    if (currentView === "overview" || currentView === "find-jobs") renderView();
+  } catch (error) {
+    console.warn("Could not refresh public job listings:", error.message);
+  } finally {
+    refreshingPublicJobs = false;
+  }
+}
+window.addEventListener("focus", refreshPublicJobsOnReturn);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refreshPublicJobsOnReturn();
+});
+
 try {
   await refreshCandidateData();
 } catch (error) {
