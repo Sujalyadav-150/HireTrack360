@@ -244,15 +244,31 @@ function applicationStatus(status) {
   return ({ APPLIED: "Applied", SCREENING: "Under Review", SHORTLISTED: "Shortlisted", INTERVIEW: "Interview", OFFER: "Offer", OFFERED: "Offer", ACCEPTED: "Selected", REJECTED: "Rejected" })[status] || status;
 }
 
+async function requestWithRetry(path, attempts = 3) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await window.apiRequest(path);
+    } catch (error) {
+      lastError = error;
+      // Do not retry authentication/permission or validation failures.
+      const retryable = !error.status || error.status === 404 || error.status === 429 || error.status >= 500;
+      if (!retryable || attempt === attempts - 1) break;
+      await new Promise(resolve => setTimeout(resolve, 350 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
 async function refreshCandidateData() {
   // Load the public job list independently. A failure in recommendations,
   // notifications, or dashboard widgets must never hide jobs that the API
   // successfully returned.
   const results = await Promise.allSettled([
-    window.apiRequest("/jobs?page=1&limit=12"),
-    window.apiRequest("/jobs/recommended?page=1&limit=12"),
-    window.apiRequest("/jobseeker/dashboard"),
-    window.apiRequest("/notifications/mine?limit=30")
+    requestWithRetry("/jobs?page=1&limit=12"),
+    requestWithRetry("/jobs/recommended?page=1&limit=12"),
+    requestWithRetry("/jobseeker/dashboard"),
+    requestWithRetry("/notifications/mine?limit=30")
   ]);
 
   const [jobResultState, recommendationState, dashboardState, notificationState] = results;
