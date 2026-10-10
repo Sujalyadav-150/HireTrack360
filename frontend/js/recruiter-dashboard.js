@@ -373,12 +373,16 @@
   try {
     session = await request("/auth/me");
   } catch (error) {
-    // Only redirect when the session check itself fails. Dashboard data/API
-    // failures must not erase a valid session or bounce a recruiter to login.
-    localStorage.removeItem("hiretrack_token");
-    localStorage.removeItem("hiretrack_role");
-    localStorage.removeItem("hiretrack_name");
-    location.href = "login.html";
+    if (error.status === 401) {
+      localStorage.removeItem("hiretrack_token");
+      localStorage.removeItem("hiretrack_role");
+      localStorage.removeItem("hiretrack_name");
+      location.href = "login.html";
+      return;
+    }
+    console.error("Recruiter session check failed:", error);
+    overviewView.innerHTML = `<div class="view-card empty-state"><h3>Dashboard could not verify your session</h3><p>${escapeHtml(error.message || "The API request failed")}</p><p>Your login has not been cleared. This may be a deployment/API routing issue.</p><button class="btn btn-primary" type="button" id="retryDashboard">Retry</button> <a href="login.html">Back to sign in</a></div>`;
+    document.getElementById("retryDashboard")?.addEventListener("click", () => location.reload());
     return;
   }
 
