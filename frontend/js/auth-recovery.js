@@ -34,7 +34,12 @@ if (resetForm) {
         tokenMessage.hidden = result.valid;
         if (!result.valid) tokenMessage.textContent = "This reset link is invalid or expired. Request a new one.";
       })
-      .catch(() => { tokenMessage.textContent = "This reset link is invalid or expired. Request a new one."; });
+      .catch(error => {
+        // Only HTTP 400 means the token itself is invalid/expired.
+        tokenMessage.textContent = error.status === 400
+          ? "This reset link is invalid or expired. Request a new one."
+          : "Could not verify the reset link (" + (error.status || "network error") + "). Open a fresh link from the latest email, or try again after deployment finishes."; 
+      });
   }
 
   resetForm.addEventListener("submit", async event => {
