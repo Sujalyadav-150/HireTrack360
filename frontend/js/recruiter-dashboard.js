@@ -43,6 +43,11 @@
     return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   }
 
+  function localDateTimeValue(date) {
+    const pad = value => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
   function notify(message) {
     toast.textContent = message;
     toast.hidden = false;
@@ -154,7 +159,11 @@
   function renderInterviews() {
     const rows = interviews.map(interview => `<tr><td><strong>${escapeHtml(interview.candidateId?.name || "Candidate")}</strong><small>${escapeHtml(interview.candidateId?.email || "")}</small></td><td>${escapeHtml(interview.jobId?.title || "Job")}</td><td>${formatDate(interview.scheduledAt)} ${new Date(interview.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td><td><span class="recruiter-status status-${escapeHtml(interview.status.toLowerCase())}">${escapeHtml(interview.status)}</span></td><td>${interview.status === "SCHEDULED" ? `<button class="table-action" data-action="interview-status" data-status="COMPLETED" data-interview-id="${escapeHtml(interview._id)}">Complete</button><button class="table-action danger-action" data-action="interview-status" data-status="CANCELLED" data-interview-id="${escapeHtml(interview._id)}">Cancel</button>` : ""}</td></tr>`);
     const eligible = applications.filter(application => !["REJECTED", "OFFERED", "ACCEPTED"].includes(application.status));
-    return `<section class="recruiter-panel"><div class="recruiter-panel-head"><div><span class="section-kicker">INTERVIEW CALENDAR</span><h3>${interviews.length} interviews</h3></div></div>${table(["Candidate", "Job", "Scheduled", "Status", "Actions"], rows, "No interviews are scheduled yet.")}</section><form id="scheduleInterviewForm" class="recruiter-form"><h3>Schedule an interview</h3><label>Application<select name="applicationId" required>${eligible.map(application => `<option value="${escapeHtml(application._id)}">${escapeHtml(application.candidateId?.name || "Candidate")} · ${escapeHtml(application.jobId?.title || "Job")}</option>`).join("")}</select></label><div class="two-col"><label>Date and time<input type="datetime-local" name="scheduledAt" required></label><label>Interview type<select name="interviewType"><option value="VIDEO">Video</option><option value="PHONE">Phone</option><option value="ONSITE">On-site</option></select></label></div><label>Meeting link<input name="meetingLink" type="url" placeholder="https://"></label><label>Notes<textarea name="notes" rows="3"></textarea></label><button class="btn btn-primary" type="submit" ${eligible.length ? "" : "disabled"}>Schedule interview</button></form>`;
+    const now = new Date();
+    const minDateTime = localDateTimeValue(now);
+    const suggestedDateTime = localDateTimeValue(new Date(now.getTime() + 60 * 60 * 1000));
+    const applicationOptions = eligible.map(application => `<option value="${escapeHtml(application._id)}">${escapeHtml(application.candidateId?.name || "Candidate")} · ${escapeHtml(application.jobId?.title || "Job")}</option>`).join("");
+    return `<section class="recruiter-panel"><div class="recruiter-panel-head"><div><span class="section-kicker">INTERVIEW CALENDAR</span><h3>${interviews.length} interviews</h3></div></div>${table(["Candidate", "Job", "Scheduled", "Status", "Actions"], rows, "No interviews are scheduled yet.")}</section><form id="scheduleInterviewForm" class="recruiter-form"><h3>Schedule an interview</h3><label>Application<select name="applicationId" required ${eligible.length ? "" : "disabled"}>${eligible.length ? applicationOptions : '<option value="">No eligible applications available</option>'}</select></label><div class="two-col"><label>Date and time<input type="datetime-local" name="scheduledAt" min="${minDateTime}" value="${suggestedDateTime}" required></label><label>Interview type<select name="interviewType"><option value="VIDEO">Video</option><option value="PHONE">Phone</option><option value="ONSITE">On-site</option></select></label></div><label>Meeting link<input name="meetingLink" type="url" placeholder="https://"></label><label>Notes<textarea name="notes" rows="3"></textarea></label><button class="btn btn-primary" type="submit" ${eligible.length ? "" : "disabled"}>Schedule interview</button></form>`;
   }
 
   function renderCompany() {
@@ -338,7 +347,18 @@
         notify("Company profile saved");
       } else if (form.id === "scheduleInterviewForm") {
         const interviewData = Object.fromEntries(data.entries());
-        interviewData.scheduledAt = new Date(interviewData.scheduledAt).toISOString();
+        const selectedDate = new Date(interviewData.scheduledAt);
+        if (!interviewData.applicationId || !Number.isFinite(selectedDate.getTime())) {
+          notify("Select an application and a valid interview date");
+          button.disabled = false;
+          return;
+        }
+        if (selectedDate <= new Date()) {
+          notify("Choose an interview date and time in the future");
+          button.disabled = false;
+          return;
+        }
+        interviewData.scheduledAt = selectedDate.toISOString();
         await request("/interviews", { method: "POST", body: JSON.stringify(interviewData) });
         await loadDashboard();
         navigate("interviews");
