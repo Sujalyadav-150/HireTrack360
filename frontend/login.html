@@ -19,6 +19,13 @@
       <label>Password<div class="password-wrap"><input id="password" type="password" placeholder="••••••••" required><button type="button" id="togglePass">Show</button></div></label>
       <div class="form-row"><label class="check"><input type="checkbox"> Remember me</label><a href="forgot-password.html">Forgot password?</a></div>
       <p class="auth-message" id="authMessage" role="alert" aria-live="polite" hidden></p>
+      <script>
+        if (new URLSearchParams(window.location.search).get("registered") === "1") {
+          const message = document.getElementById("authMessage");
+          message.textContent = "Account created successfully. Please sign in.";
+          message.hidden = false;
+        }
+      </script>
       <button class="btn btn-primary btn-full" type="submit">Sign in <span>→</span></button>
     </form>
     <p class="switch-auth">New to HireTrack? <a href="signup.html">Create an account</a></p>
