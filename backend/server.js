@@ -992,11 +992,12 @@ app.get("/api/activity/mine", authenticate, async (req, res) => {
 const cronEnabled = process.env.CRON_ENABLED !== "false";
 
 app.get("/api/health", (req, res) => {
-  res.json({
-    success: true,
+  const databaseConnected = mongoose.connection.readyState === 1;
+  res.status(databaseConnected ? 200 : 503).json({
+    success: databaseConnected,
     app: "HireTrack 360",
     environment: process.env.NODE_ENV || "development",
-    databaseConnected: mongoose.connection.readyState === 1,
+    databaseConnected,
     pushConfigured,
     cronEnabled,
     timestamp: new Date().toISOString()
