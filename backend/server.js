@@ -394,7 +394,9 @@ app.get("/api/jobs", optionalAuthenticate, async (req, res) => {
     // Date-only deadlines should remain eligible for the entire calendar day. Older records may store a date-only deadline as midnight, so comparing against the current time hides them too early.
     const deadlineDayStart = new Date();
     deadlineDayStart.setHours(0, 0, 0, 0);
-    const filter = { status: "OPEN", $or: [{ deadline: null }, { deadline: { $gte: deadlineDayStart } }] };
+    // Treat legacy records without a status as open (the schema default is OPEN),
+    // but never expose jobs explicitly marked CLOSED.
+    const filter = { status: { $in: ["OPEN", null] }, $or: [{ deadline: null }, { deadline: { $gte: deadlineDayStart } }] };
     const query = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
     if (query) filter.$text = { $search: query };
     if (typeof req.query.location === "string" && req.query.location.trim()) {
@@ -532,7 +534,7 @@ app.post("/api/jobs/:jobId/apply", authenticate, requireRole("jobseeker"), async
     deadlineDayStart.setHours(0, 0, 0, 0);
     const job = await Job.findOne({
       _id: req.params.jobId,
-      status: "OPEN",
+      status: { $in: ["OPEN", null] },
       $or: [{ deadline: null }, { deadline: { $gte: deadlineDayStart } }]
     });
     if (!job) return res.status(404).json({ success: false, message: "Job not found" });
