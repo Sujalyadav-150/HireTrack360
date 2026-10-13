@@ -151,8 +151,18 @@ document.getElementById("signupForm")?.addEventListener("submit", async event =>
       method: "POST",
       body: JSON.stringify(requestBody)
     });
-    if (!result?.user) throw new Error("Account was created but the server response was incomplete. Please sign in.");
-    saveSession(result);
+    if (!result?.user) throw new Error("Account was created, but the response was incomplete. Please sign in.");
+
+    // Account creation must not create a session. Ask the user to sign in explicitly.
+    localStorage.removeItem("hiretrack_token");
+    localStorage.removeItem("hiretrack_role");
+    localStorage.removeItem("hiretrack_name");
+    localStorage.removeItem("hiretrack_demo_user");
+    form.reset();
+    if (roleInput) roleInput.value = "jobseeker";
+    roleButtons.forEach(button => button.classList.toggle("active", button.dataset.role === "jobseeker"));
+    renderDynamicFields();
+    window.location.href = "login.html?registered=1";
   } catch (error) {
     showAuthMessage(error.message || "Could not create your account. Check the server and try again.");
     submitButton.disabled = false;
