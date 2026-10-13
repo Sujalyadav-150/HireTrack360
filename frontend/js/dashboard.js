@@ -458,10 +458,19 @@ function renderView() {
   updateProfileLabels();
 }
 
-function navigateTo(view) {
+async function navigateTo(view) {
   if (!viewDetails[view]) return;
   currentView = view;
   window.history.pushState(null, "", `#${view}`);
+  // Refresh from the shared database whenever the seeker opens Find Jobs.
+  if (view === "find-jobs") {
+    try {
+      await loadJobs(jobFilters, 1);
+    } catch (error) {
+      console.warn("Could not refresh jobs on opening Find Jobs:", error.message);
+      showToast("Could not refresh job listings. Please try again.");
+    }
+  }
   renderView();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -627,13 +636,14 @@ window.addEventListener("popstate", () => {
   renderView();
 });
 
-// Refresh public vacancies when the seeker returns to this tab.
+// Keep public vacancies current even if the seeker leaves the portal open.
+// Always refresh page 1 so newly posted jobs are not hidden on later pages.
 let refreshingPublicJobs = false;
 async function refreshPublicJobsOnReturn() {
   if (document.visibilityState !== "visible" || refreshingPublicJobs) return;
   refreshingPublicJobs = true;
   try {
-    await loadJobs(jobFilters, jobPagination.page || 1);
+    await loadJobs(jobFilters, 1);
     if (currentView === "overview" || currentView === "find-jobs") renderView();
   } catch (error) {
     console.warn("Could not refresh public job listings:", error.message);
@@ -645,6 +655,7 @@ window.addEventListener("focus", refreshPublicJobsOnReturn);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") refreshPublicJobsOnReturn();
 });
+window.setInterval(refreshPublicJobsOnReturn, 30000);
 
 try {
   await refreshCandidateData();
