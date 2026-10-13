@@ -391,7 +391,10 @@ app.get("/api/jobs", optionalAuthenticate, async (req, res) => {
   try {
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
-    const filter = { status: "OPEN", $or: [{ deadline: null }, { deadline: { $gt: new Date() } }] };
+    // Date-only deadlines should remain eligible for the entire calendar day. Older records may store a date-only deadline as midnight, so comparing against the current time hides them too early.
+    const deadlineDayStart = new Date();
+    deadlineDayStart.setHours(0, 0, 0, 0);
+    const filter = { status: "OPEN", $or: [{ deadline: null }, { deadline: { $gte: deadlineDayStart } }] };
     const query = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
     if (query) filter.$text = { $search: query };
     if (typeof req.query.location === "string" && req.query.location.trim()) {
