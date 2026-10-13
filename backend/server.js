@@ -659,7 +659,9 @@ app.post("/api/recruiter/jobs", authenticate, requireRole("recruiter"), async (r
       salaryMin: Number(salaryMin) || undefined,
       salaryMax: Number(salaryMax) || undefined,
       deadline: deadline ? new Date(deadline) : undefined,
-      recruiterId: req.user._id
+      recruiterId: req.user._id,
+      // Newly published recruiter jobs must be eligible for the public seeker feed.
+      status: "OPEN"
     };
     const safety = calculateJobRisk(jobFields, req.user);
     const job = await Job.create({
