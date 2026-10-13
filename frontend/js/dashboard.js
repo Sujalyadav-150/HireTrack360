@@ -546,7 +546,22 @@ async function handleAction(button) {
       await selectJob(jobId);
       navigateTo("job-details");
     } catch (error) {
-      showToast(error.message);
+      // A stale card can outlive a job record (for example, after an old job
+      // was removed). Refresh the source listing instead of leaving the stale
+      // card visible or showing an unexplained "Job not found" error.
+      if (error.status === 404) {
+        try {
+          await loadJobs(jobFilters, 1);
+          currentView = "find-jobs";
+          window.history.replaceState(null, "", "#find-jobs");
+          renderView();
+          showToast("This job is no longer available. Job listings have been refreshed.");
+        } catch (refreshError) {
+          showToast("This job could not be found. Refresh Find Jobs and try again.");
+        }
+      } else {
+        showToast(error.message);
+      }
     }
   } else if (action === "remove-resume") {
     try {
