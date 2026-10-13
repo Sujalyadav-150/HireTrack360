@@ -892,8 +892,14 @@ app.get("/api/interviews/mine", authenticate, async (req, res) => {
 
 app.post("/api/interviews", authenticate, requireRole("recruiter"), async (req, res) => {
   const { applicationId, scheduledAt, interviewType, meetingLink, notes } = req.body;
-  if (!mongoose.isValidObjectId(applicationId) || !scheduledAt || !Number.isFinite(new Date(scheduledAt).getTime()) || new Date(scheduledAt) <= new Date()) {
-    return res.status(400).json({ success: false, message: "Choose a valid application and a future interview date" });
+  if (!mongoose.isValidObjectId(applicationId)) {
+    return res.status(400).json({ success: false, message: "Select a valid application before scheduling the interview" });
+  }
+  if (!scheduledAt || !Number.isFinite(new Date(scheduledAt).getTime())) {
+    return res.status(400).json({ success: false, message: "Choose a valid interview date and time" });
+  }
+  if (new Date(scheduledAt) <= new Date()) {
+    return res.status(400).json({ success: false, message: "Choose an interview date and time in the future" });
   }
   const application = await Application.findById(applicationId).populate("jobId", "recruiterId title company");
   if (!application || !application.jobId || application.jobId.recruiterId?.toString() !== req.user._id.toString()) {
