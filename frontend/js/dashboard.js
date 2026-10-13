@@ -36,6 +36,7 @@ let recommendedJobs = [];
 let savedJobIds = [];
 let savedJobs = [];
 let applications = [];
+const applyingJobIds = new Set();
 let resumes = [];
 let interviews = [];
 let notifications = [];
@@ -118,7 +119,7 @@ function jobCard(job, options = {}) {
   return `<article class="view-card job-result">
     <div class="view-card-head"><div><span class="section-kicker">${matchLabel} MATCH</span><h3>${escapeHtml(job.title)}</h3><p>${escapeHtml(job.company)} · ${escapeHtml(job.location)}</p></div><span class="match-pill">${escapeHtml(job.type)}</span></div>
     <div class="chips"><span>${escapeHtml(job.pay)}</span><span>${escapeHtml(job.skills)}</span></div>
-    <div class="view-card-actions"><button class="btn btn-ghost" data-action="view-job" data-job-id="${escapeHtml(jobId)}">Details</button>${options.remove ? `<button class="btn btn-ghost" data-action="remove-saved" data-job-id="${escapeHtml(jobId)}">Remove</button>` : `<button class="btn btn-ghost" data-action="save-job" data-job-id="${escapeHtml(jobId)}">${savedJobIds.includes(jobId) ? "Saved" : "Save job"}</button>`}<button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(jobId)}">Apply</button></div>
+    <div class="view-card-actions"><button class="btn btn-ghost" data-action="view-job" data-job-id="${escapeHtml(jobId)}">Details</button>${options.remove ? `<button class="btn btn-ghost" data-action="remove-saved" data-job-id="${escapeHtml(jobId)}">Remove</button>` : `<button class="btn btn-ghost" data-action="save-job" data-job-id="${escapeHtml(jobId)}">${savedJobIds.includes(jobId) ? "Saved" : "Save job"}</button>`}${applications.some(application => String(application.jobId) === String(jobId)) ? `<button class="btn btn-primary" disabled>Applied</button>` : `<button class="btn btn-primary" data-action="apply-job" data-job-id="${escapeHtml(jobId)}" ${applyingJobIds.has(String(jobId)) ? "disabled" : ""}>${applyingJobIds.has(String(jobId)) ? "Applying…" : "Apply"}</button>`}</div>
   </article>`;
 }
 
@@ -487,14 +488,40 @@ async function handleAction(button) {
       showToast(error.message);
     }
   } else if (action === "apply-job") {
+    const normalizedJobId = String(jobId || "");
+    if (!normalizedJobId || applyingJobIds.has(normalizedJobId)) return;
+    if (applications.some(application => String(application.jobId) === normalizedJobId)) {
+      showToast("You already applied to this job");
+      renderView();
+      return;
+    }
+    applyingJobIds.add(normalizedJobId);
+    button.disabled = true;
+    button.textContent = "Applying…";
     try {
       const resumeId = document.getElementById("applyResume")?.value;
-      await window.apiRequest(`/jobs/${encodeURIComponent(jobId)}/apply`, { method: "POST", body: JSON.stringify({ resumeId: resumeId || undefined }) });
+      await window.apiRequest(`/jobs/${encodeURIComponent(normalizedJobId)}/apply`, { method: "POST", body: JSON.stringify({ resumeId: resumeId || undefined }) });
       await refreshCandidateData();
       renderView();
       showToast("Application submitted");
     } catch (error) {
-      showToast(error.message);
+      if (error.status === 409) {
+        try {
+          await refreshCandidateData();
+          renderView();
+        } catch (refreshError) {
+          console.warn("Could not refresh applications after duplicate response:", refreshError.message);
+        }
+        showToast("You already applied to this job. Check My Applications.");
+      } else {
+        showToast(error.message);
+      }
+    } finally {
+      applyingJobIds.delete(normalizedJobId);
+      if (document.contains(button)) {
+        button.disabled = false;
+        button.textContent = "Apply";
+      }
     }
   } else if (action === "remove-saved") {
     if (!jobId) {
