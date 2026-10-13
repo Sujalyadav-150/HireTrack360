@@ -506,7 +506,9 @@ app.get("/api/jobseeker/dashboard", authenticate, requireRole("jobseeker"), asyn
 app.post("/api/jobs/:jobId/save", authenticate, requireRole("jobseeker"), async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.jobId)) return res.status(404).json({ success: false, message: "Job not found" });
-    const job = await Job.findOne({ _id: req.params.jobId, status: "OPEN", $or: [{ deadline: null }, { deadline: { $gt: new Date() } }] });
+    const deadlineDayStart = new Date();
+    deadlineDayStart.setHours(0, 0, 0, 0);
+    const job = await Job.findOne({ _id: req.params.jobId, status: "OPEN", $or: [{ deadline: null }, { deadline: { $gte: deadlineDayStart } }] });
     if (!job) return res.status(404).json({ success: false, message: "Job not found" });
     const saved = (req.user.savedJobs || []).some(id => id.toString() === job._id.toString());
     req.user.savedJobs = saved
