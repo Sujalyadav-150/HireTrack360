@@ -525,7 +525,16 @@ app.post("/api/jobs/:jobId/save", authenticate, requireRole("jobseeker"), async 
 app.post("/api/jobs/:jobId/apply", authenticate, requireRole("jobseeker"), async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.jobId)) return res.status(404).json({ success: false, message: "Job not found" });
-    const job = await Job.findOne({ _id: req.params.jobId, status: "OPEN", $or: [{ deadline: null }, { deadline: { $gt: new Date() } }] });
+    // Match the public job-listing deadline rule: date-only deadlines
+    // remain valid through the entire calendar day, including older records
+    // stored at midnight.
+    const deadlineDayStart = new Date();
+    deadlineDayStart.setHours(0, 0, 0, 0);
+    const job = await Job.findOne({
+      _id: req.params.jobId,
+      status: "OPEN",
+      $or: [{ deadline: null }, { deadline: { $gte: deadlineDayStart } }]
+    });
     if (!job) return res.status(404).json({ success: false, message: "Job not found" });
     const existing = await Application.findOne({ jobId: job._id, candidateId: req.user._id });
     if (existing) return res.status(409).json({ success: false, message: "You already applied to this job" });
